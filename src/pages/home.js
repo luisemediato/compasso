@@ -11,7 +11,7 @@ export function renderHome() {
       <h2 id="titulo-musico">Área do músico</h2>
       <p>Entre na sua conta ou cadastre-se para criar seu portfólio.</p>
       <a href="/entrar">Entrar</a>
-      <a href="/cadastrar">Cadastrar</a>
+      <a href="/cadastro">Cadastrar</a>
     </section>
   `;
 }

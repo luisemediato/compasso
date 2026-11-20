@@ -10,7 +10,7 @@ test('a home oferece descoberta para visitantes e acesso para músicos', () => {
   const acoes = [
     ['Explorar', '/explorar'],
     ['Entrar', '/entrar'],
-    ['Cadastrar', '/cadastrar'],
+    ['Cadastrar', '/cadastro'],
   ];
 
   for (const [nome, destino] of acoes) {
