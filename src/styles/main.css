@@ -37,3 +37,11 @@ nav a {
 footer {
   border-top: 1px solid #d6dbd3;
 }
+
+.home-performance {
+  display: block;
+  width: 100%;
+  max-width: 48rem;
+  height: auto;
+  margin-block: 1rem;
+}
