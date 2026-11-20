@@ -1,0 +1,21 @@
+{
+  "name": "compasso",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luisemediato/compasso.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/luisemediato/compasso/issues"
+  },
+  "homepage": "https://github.com/luisemediato/compasso#readme"
+}
