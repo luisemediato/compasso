@@ -2,11 +2,11 @@ import { routeFromPath } from './domain/routes.js';
 import { renderHome } from './pages/home.js';
 import { emptyState } from './ui/components.js';
 import { renderShell } from './ui/shell.js';
+import { renderLogin, renderRegister } from './pages/account.js';
+import { bindSlugSuggestion } from './ui/forms.js';
 
 const pendingPages = new Map([
   ['explore', 'Explorar estará disponível em breve.'],
-  ['login', 'A entrada de músicos estará disponível em breve.'],
-  ['register', 'O cadastro estará disponível em breve.'],
 ]);
 
 export function startApp(window) {
@@ -19,6 +19,16 @@ export function startApp(window) {
 
     if (route === 'home') {
       main.innerHTML = renderHome();
+      return;
+    }
+        if (route === 'login') {
+      main.innerHTML = renderLogin();
+      return;
+    }
+
+    if (route === 'register') {
+      main.innerHTML = renderRegister();
+      bindSlugSuggestion(main.querySelector('form'));
       return;
     }
 
