@@ -26,3 +26,8 @@ dist/
 EOF
 
 git status --short
+## Executar localmente
+
+Com Node.js 24, rode `npm ci` e `npm run dev` na raiz do projeto.
+Abra http://localhost:4173. Para servir um build já gerado, use `npm start`.
+Para testar o handler HTTP, rode `node --test tests/integration/http.test.js`.
