@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test tests/unit/*.test.js",
+    "build": "node scripts/build.js",
+    "dev": "node scripts/dev.js",
+    "start": "node scripts/serve.js",
     "db:generate": "drizzle-kit generate"
   },
   "repository": {
@@ -19,10 +22,12 @@
     "url": "https://github.com/luisemediato/compasso/issues"
   },
   "homepage": "https://github.com/luisemediato/compasso#readme",
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.1"
+  },
   "dependencies": {
     "drizzle-orm": "^0.45.2"
-  },
-  "devDependencies": {
-    "drizzle-kit": "^0.31.10"
   }
 }
