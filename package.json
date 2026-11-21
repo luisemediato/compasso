@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test tests/unit/*.test.js"
+    "test": "node --test tests/unit/*.test.js",
+    "build": "node scripts/build.js",
+    "dev": "node scripts/dev.js",
+    "start": "node scripts/serve.js"
   },
   "repository": {
     "type": "git",
@@ -17,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/luisemediato/compasso/issues"
   },
-  "homepage": "https://github.com/luisemediato/compasso#readme"
+  "homepage": "https://github.com/luisemediato/compasso#readme",
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.1"
+  }
 }
