@@ -24,3 +24,7 @@ test('recusa endereço vazio ou com hífens mal posicionados', () => {
 test('reserva o endereço entrar para a aplicação', () => {
   assert.equal(isValidSlug('entrar'), false);
 });
+
+test('reserva o endereço cadastro para a aplicação', () => {
+  assert.equal(isValidSlug('cadastro'), false);
+});
