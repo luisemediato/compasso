@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { handleRequest } from '../server/http.js';
+import { openDatabase } from '../server/local-db.js';
 
 const files = new Map();
 const types = {
@@ -37,11 +38,26 @@ function fetchAsset(request) {
 
 const port = Number(process.env.PORT ?? 4173);
 
-createServer(async (incoming, outgoing) => {
+await mkdir('.local', { recursive: true });
+const db = openDatabase(process.env.COMPASSO_DB ?? '.local/compasso.sqlite');
+
+const server = createServer(async (incoming, outgoing) => {
   try {
-    const url = new URL(incoming.url, `http://localhost:${port}`);
-    const request = new Request(url, { method: incoming.method });
-    const response = await handleRequest(request, fetchAsset);
+    const host = incoming.headers.host ?? `localhost:${port}`;
+    const url = new URL(incoming.url, `http://${host}`);
+    const options = {
+      method: incoming.method,
+      headers: incoming.headers,
+    };
+
+    if (incoming.method !== 'GET' && incoming.method !== 'HEAD') {
+      options.body = incoming;
+      options.duplex = 'half';
+    }
+
+    const request = new Request(url, options);
+    const response = await handleRequest(request, fetchAsset, db);
+
     outgoing.writeHead(response.status, Object.fromEntries(response.headers));
     outgoing.end(Buffer.from(await response.arrayBuffer()));
   } catch (error) {
@@ -49,6 +65,10 @@ createServer(async (incoming, outgoing) => {
     outgoing.writeHead(500);
     outgoing.end();
   }
-}).listen(port, '127.0.0.1', () => {
+});
+
+server.on('close', () => db.close());
+
+server.listen(port, '127.0.0.1', () => {
   console.log(`Compasso disponível em http://localhost:${port}`);
 });

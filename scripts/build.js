@@ -19,5 +19,6 @@ await build({
   outfile: 'dist/server/index.js',
   bundle: true,
   format: 'esm',
-  platform: 'browser',
+  platform: 'neutral',
+  external: ['node:*'],
 });
