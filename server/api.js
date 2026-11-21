@@ -111,6 +111,39 @@ const postRoutes = new Map([
   ['/api/logout', logout],
 ]);
 
+const MAX_BODY_BYTES = 400_000;
+
+async function readJson(request) {
+  const tooLarge = () => json({ error: 'Conteúdo muito grande.' }, 413);
+  if (Number(request.headers.get('Content-Length')) > MAX_BODY_BYTES) {
+    return { error: tooLarge() };
+  }
+
+  const reader = request.body?.getReader();
+  if (!reader) return { error: json({ error: 'JSON inválido.' }, 400) };
+
+  let bytes = 0;
+  let text = '';
+  const decoder = new TextDecoder();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return { error: tooLarge() };
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return { value: JSON.parse(text + decoder.decode()) };
+  } catch {
+    return { error: json({ error: 'JSON inválido.' }, 400) };
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function api(request, db) {
   const url = new URL(request.url);
 
@@ -140,12 +173,9 @@ export async function api(request, db) {
     return json({ error: 'Envie JSON.' }, 415);
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: 'JSON inválido.' }, 400);
-  }
+  const parsed = await readJson(request);
+  if (parsed.error) return parsed.error;
+  const body = parsed.value;
 
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return json({ error: 'Dados inválidos.' }, 400);
