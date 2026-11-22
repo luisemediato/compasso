@@ -19,11 +19,20 @@ ChatGPT e Codex foram usados como ferramentas de apoio ao planejamento, à elabo
 
 ## Execução e testes
 
+Para obter uma cópia do projeto, execute:
+
+```bash
+git clone https://github.com/luisemediato/compasso.git
+cd compasso
+```
+
 Com o Node.js 24 instalado, execute `npm ci` na raiz do repositório para instalar as dependências.
 
 ### Executar a aplicação localmente
 
 Execute `npm run dev` e abra http://localhost:4173 no navegador. Para encerrar o servidor, pressione `Ctrl+C`. Para servir um build já gerado, use `npm start`.
+
+O comando `npm run build` gera os arquivos da aplicação em `dist/`. Na primeira execução, o servidor cria o banco SQLite em `.local/compasso.sqlite` e aplica a migração `drizzle/0000_compasso.sql`. Os dados ficam disponíveis nas próximas vezes que o servidor for iniciado.
 
 ### Rodar os testes
 
@@ -35,4 +44,4 @@ Execute os comandos na raiz do repositório. As suítes abaixo rodam no terminal
 | `npm run test:integration` | Testes de integração. |
 | `npm run test:coverage` | As duas suítes com medição de cobertura. Gera `coverage/lcov.info`. |
 
-O GitHub Actions executa a verificação em Linux, Windows e macOS e envia o relatório de cobertura ao Codecov.
+O GitHub Actions executa as verificações em Linux, Windows e macOS. A cobertura considera os arquivos JavaScript de `src/` e `server/`. No terminal, a coluna `% Lines` indica a porcentagem de linhas executadas pelos testes. Para consultar os resultados de uma versão, abra a [execução no GitHub Actions](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) e o [relatório no Codecov](https://app.codecov.io/gh/luisemediato/compasso) referentes ao mesmo commit.
