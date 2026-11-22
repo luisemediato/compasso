@@ -24,3 +24,47 @@ export function openLocalDb(filename) {
     throw error;
   }
 }
+
+export function openDatabase(filename) {
+  const db = openLocalDb(filename);
+
+  function prepare(sql) {
+    const statement = db.prepare(sql);
+
+    function bind(...values) {
+      return {
+        first() {
+          return statement.get(...values) ?? null;
+        },
+
+        run() {
+          return { meta: statement.run(...values) };
+        },
+      };
+    }
+
+    return {
+      ...bind(),
+      bind,
+    };
+  }
+
+  function batch(statements) {
+    db.exec('BEGIN IMMEDIATE');
+
+    try {
+      const results = statements.map((statement) => statement.run());
+      db.exec('COMMIT');
+      return results;
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  return {
+    prepare,
+    batch,
+    close: () => db.close(),
+  };
+}

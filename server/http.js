@@ -1,9 +1,19 @@
-export async function handleRequest(request, fetchAsset) {
-  if (!['GET', 'HEAD'].includes(request.method)) {
-    return new Response(null, { status: 405, headers: { Allow: 'GET, HEAD' } });
+import { api } from './api.js';
+
+export async function handleRequest(request, fetchAsset, db) {
+  const url = new URL(request.url);
+
+  if (url.pathname.startsWith('/api/')) {
+    return api(request, db);
   }
 
-  const url = new URL(request.url);
+  if (!['GET', 'HEAD'].includes(request.method)) {
+    return new Response(null, {
+      status: 405,
+      headers: { Allow: 'GET, HEAD' },
+    });
+  }
+
   const isPage = !url.pathname.startsWith('/assets/') &&
     !url.pathname.startsWith('/api/') &&
     !url.pathname.split('/').pop().includes('.');

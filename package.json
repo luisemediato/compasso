@@ -8,7 +8,8 @@
     "build": "node scripts/build.js",
     "dev": "node scripts/dev.js",
     "start": "node scripts/serve.js",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:integration": "node --test tests/integration/*.test.js"
   },
   "repository": {
     "type": "git",
