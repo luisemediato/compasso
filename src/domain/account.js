@@ -1,5 +1,5 @@
 export { draftError } from './draft.js';
-import { isValidSlug } from './validation.js';
+import { hasEmailFormat, isValidSlug } from './validation.js';
 export function suggestSlug(artistName) {
   return artistName
     .normalize('NFD')
@@ -20,8 +20,7 @@ export function accountError({ fullName, name, email, password, slug } = {}) {
     return 'Informe seu nome e seu nome artístico (até 120 caracteres).';
   }
 
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (typeof email !== 'string' || email.length > 254 || !emailPattern.test(email.trim())) {
+  if (!hasEmailFormat(email) || email.length > 254) {
     return 'Informe um e-mail válido.';
   }
 

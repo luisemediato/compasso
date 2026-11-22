@@ -1,5 +1,37 @@
 const PROFILE_FIELDS = new Set(['name', 'instrument', 'city', 'headline', 'bio', 'email', 'instagram']);
 
+export function validateWork(work) {
+  if (typeof work?.title !== 'string' || !work.title.trim()) return 'Informe o título do trabalho.';
+  if (!safeUrl(work.url)) return 'Informe um link HTTP ou HTTPS para o trabalho.';
+  return '';
+}
+
+export function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+export function isPublicEvent(event) {
+  return event?.visibility === 'public';
+}
+
+export function validateEvent(event) {
+  if (event?.visibility !== undefined && !['private', 'public'].includes(event.visibility)) {
+    return 'Escolha uma visibilidade válida para a apresentação.';
+  }
+  if (typeof event?.title !== 'string' || !event.title.trim()) return 'Dê um nome à apresentação.';
+  if (!validDate(event.date)) return 'Informe uma data válida.';
+  if (typeof event.time !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(event.time)) {
+    return 'Informe um horário válido.';
+  }
+  if (typeof event.venue !== 'string' || !event.venue.trim()) return 'Informe o local.';
+  if (event.ticket !== undefined && event.ticket !== '' && !safeUrl(event.ticket)) {
+    return 'Informe um link de ingresso válido.';
+  }
+  return '';
+}
+
 export function safeUrl(value) {
   if (typeof value !== 'string') return '';
   try {
@@ -42,6 +74,10 @@ export function normalizeInstagram(input) {
   return `https://www.instagram.com/${username}/`;
 }
 
+export function hasEmailFormat(value) {
+  return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export function validateProfile(profile, { requireInstrument = true } = {}) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return 'Perfil inválido.';
   for (const [field, value] of Object.entries(profile)) {
@@ -53,16 +89,9 @@ export function validateProfile(profile, { requireInstrument = true } = {}) {
   if (requireInstrument && !profile.instrument?.trim()) return 'Informe seu instrumento.';
   if (profile.bio?.length > 3000) return 'Use até 3000 caracteres na trajetória.';
   const email = profile.email?.trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Informe um e-mail válido.';
+  if (email && !hasEmailFormat(email)) return 'Informe um e-mail válido.';
   if (profile.instagram?.trim() && !normalizeInstagram(profile.instagram)) return 'Informe o usuário ou o link de perfil do Instagram.';
   return '';
 }
 
-const RESERVED_SLUGS = new Set(['entrar', 'cadastro']);
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-export function isValidSlug(slug) {
-  return typeof slug === 'string'
-    && SLUG_PATTERN.test(slug)
-    && !RESERVED_SLUGS.has(slug);
-}
+export { isValidSlug } from './routes.js';

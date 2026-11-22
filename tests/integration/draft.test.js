@@ -39,8 +39,10 @@ test('salva perfil, trabalhos e eventos, normaliza Instagram e permite removê-l
   const estado = await artista.ler();
   estado.profile.instagram = '@Ana.Viola';
   estado.profile.bio = 'Viola de arco';
-  estado.works.push({ id: 'obra-1', title: 'Concerto' });
-  estado.events.push({ id: 'evento-1', title: 'Recital' });
+  estado.works.push({ id: 'obra-1', title: 'Concerto', url: 'https://example.test/concerto' });
+  estado.events.push({
+    id: 'evento-1', title: 'Recital', date: '2026-11-21', time: '19:00', venue: 'Teatro',
+  });
   const resposta = await artista.salvar(estado);
   assert.equal(resposta.status, 200);
   const salvo = await resposta.json();
@@ -88,4 +90,38 @@ test('rascunho inválido não altera dados nem consome revisão', async (t) => {
   });
   assert.equal(resposta.status, 400);
   assert.deepEqual(await artista.ler(), inicial);
+});
+
+test('data impossível na agenda retorna 400 e preserva os dados e a revisão do rascunho', async (t) => {
+  const artista = await conta(banco(t), 'ana');
+  const inicial = await artista.ler();
+  const evento = { id: 'e1', title: 'Recital', date: '2026-04-30', time: '20:00', venue: 'Teatro' };
+  const salvo = await artista.salvar({ ...inicial, events: [evento] });
+  assert.equal(salvo.status, 200);
+  const antes = await salvo.json();
+
+  const resposta = await artista.salvar({ ...antes, events: [{ ...evento, date: '2026-04-31' }] });
+  assert.equal(resposta.status, 400);
+  assert.match((await resposta.json()).error, /data/i);
+  assert.deepEqual(await artista.ler(), antes);
+});
+
+test('rascunho preserva eventos privados, públicos e antigos e permite desmarcar um recital', async (t) => {
+  const artista = await conta(banco(t), 'ana');
+  const evento = { id: 'antigo', title: 'Recital', venue: 'Sala', date: '2026-11-24', time: '19:00' };
+  const events = [evento, { ...evento, id: 'ensaio', visibility: 'private' },
+    { ...evento, id: 'concerto', visibility: 'public' }];
+  const estado = await artista.ler();
+  assert.equal((await artista.salvar({ ...estado, events })).status, 200);
+  const salvo = await artista.ler();
+  assert.deepEqual(salvo.events, events);
+
+  const privados = events.map(e => ({ ...e, visibility: 'private' }));
+  assert.equal((await artista.salvar({ ...salvo, events: privados })).status, 200);
+  const atualizado = await artista.ler();
+  assert.deepEqual(atualizado.events, privados);
+
+  const invalido = [{ ...evento, visibility: 'talvez' }];
+  assert.equal((await artista.salvar({ ...atualizado, events: invalido })).status, 400);
+  assert.deepEqual(await artista.ler(), atualizado);
 });

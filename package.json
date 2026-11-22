@@ -9,7 +9,8 @@
     "dev": "node scripts/dev.js",
     "start": "node scripts/serve.js",
     "db:generate": "drizzle-kit generate",
-    "test:integration": "node --test tests/integration/*.test.js"
+    "test:integration": "node --test tests/integration/*.test.js",
+    "test:coverage": "c8 node --test \"tests/unit/*.test.js\" \"tests/integration/*.test.js\""
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   },
   "homepage": "https://github.com/luisemediato/compasso#readme",
   "devDependencies": {
+    "c8": "^10.1.3",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.2",
     "jsdom": "^31.0.1"

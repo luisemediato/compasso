@@ -52,7 +52,7 @@ test('rascunho exige coleções e campos públicos de texto com tamanho válido'
 
 test('coleções limitam quantidade, campos e IDs repetidos dentro de cada coleção', () => {
   const draft = account.newDraft('Ana Cordas');
-  const works = Array.from({ length: 250 }, (_, i) => ({ id: String(i), title: 'Obra' }));
+  const works = Array.from({ length: 250 }, (_, i) => ({ id: String(i), title: 'Obra', url: 'https://example.test/obra' }));
   assert.equal(account.draftError({ ...draft, works }), '');
   for (const invalida of [[...works, { id: 'extra' }], [works[0], works[0]],
     [{ title: 'Sem ID' }], [{ id: 'x', privado: 'valor' }]]) {
