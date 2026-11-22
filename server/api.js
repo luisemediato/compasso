@@ -1,3 +1,4 @@
+import { createPublication } from '../src/domain/publication.js';
 import { normalizeInstagram } from '../src/domain/validation.js';
 import { randomUUID } from 'node:crypto';
 import { accountError, draftError, newDraft } from '../src/domain/account.js';
@@ -102,12 +103,20 @@ function artistState(artist) {
   };
 }
 
-async function saveDraft(request, db, body) {
-  const artist = await activeArtist(db, request);
-  if (!artist) return json({ error: 'Entre para salvar o rascunho.' }, 401);
-  const conflict = () => json({ error: 'A conta ou o rascunho mudou. Recarregue a página.' }, 409);
-  if (body.id !== artist.id || body.revision !== artist.revision) return conflict();
+function conflict() {
+  return json({ error: 'A conta ou o rascunho mudou. Recarregue a página.' }, 409);
+}
 
+function withCurrentArtist(action) {
+  return async (request, db, body) => {
+    const artist = await activeArtist(db, request);
+    if (!artist) return json({ error: 'Entre para editar seu portfólio.' }, 401);
+    if (body.id !== artist.id || body.revision !== artist.revision) return conflict();
+    return action(db, artist, body);
+  };
+}
+
+async function saveDraft(db, artist, body) {
   const draft = { profile: body.profile, works: body.works, events: body.events };
   const error = draftError(draft);
   if (error) return json({ error }, 400);
@@ -121,6 +130,30 @@ async function saveDraft(request, db, body) {
   return updated ? json(artistState(updated), 200) : conflict();
 }
 
+async function savePublication(db, artist, publication) {
+  const updated = await db.prepare(`
+    UPDATE artists SET publication = ?, revision = revision + 1
+    WHERE id = ? AND revision = ?
+    RETURNING id, slug, draft, revision, publication
+  `).bind(publication, artist.id, artist.revision).first();
+  return updated ? json(artistState(updated), 200) : conflict();
+}
+
+function publish(db, artist) {
+  const draft = JSON.parse(artist.draft);
+  let publication;
+  try {
+    publication = createPublication(draft, artist.slug);
+  } catch (error) {
+    return json({ error: error.message }, 400);
+  }
+  return savePublication(db, artist, JSON.stringify(publication));
+}
+
+function unpublish(db, artist) {
+  return savePublication(db, artist, null);
+}
+
 async function logout(request, db) {
   const token = readToken(request);
   if (token) {
@@ -132,7 +165,9 @@ async function logout(request, db) {
 const postRoutes = new Map([
   ['/api/register', register],
   ['/api/login', login],
-  ['/api/draft', saveDraft],
+  ['/api/draft', withCurrentArtist(saveDraft)],
+  ['/api/publish', withCurrentArtist(publish)],
+  ['/api/unpublish', withCurrentArtist(unpublish)],
   ['/api/logout', logout],
 ]);
 
