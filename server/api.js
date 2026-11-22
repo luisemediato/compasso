@@ -1,4 +1,4 @@
-import { createPublication } from '../src/domain/publication.js';
+import { createPublication, searchArtists } from '../src/domain/publication.js';
 import { normalizeInstagram } from '../src/domain/validation.js';
 import { randomUUID } from 'node:crypto';
 import { accountError, draftError, newDraft } from '../src/domain/account.js';
@@ -204,13 +204,22 @@ async function readJson(request) {
   }
 }
 
+async function listArtists(db, filters) {
+  const { results } = await db.prepare(`
+    SELECT publication FROM artists WHERE publication IS NOT NULL ORDER BY rowid DESC
+  `).all();
+  const publications = results.map(row => JSON.parse(row.publication));
+  return json(searchArtists(publications, filters.get('q'), filters.get('instrument')), 200);
+}
+
 export async function api(request, db) {
   const url = new URL(request.url);
 
-  if (url.pathname === '/api/session') {
+  if (url.pathname === '/api/session' || url.pathname === '/api/artists') {
     if (request.method !== 'GET') {
       return json({ error: 'Método indisponível.' }, 405, { Allow: 'GET' });
     }
+    if (url.pathname === '/api/artists') return listArtists(db, url.searchParams);
     return getSession(request, db);
   }
 
