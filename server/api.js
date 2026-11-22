@@ -1,5 +1,6 @@
+import { normalizeInstagram } from '../src/domain/validation.js';
 import { randomUUID } from 'node:crypto';
-import { accountError, newDraft } from '../src/domain/account.js';
+import { accountError, draftError, newDraft } from '../src/domain/account.js';
 import {
   activeArtist, digest, hashPassword, newSession, readToken, sessionCookie, verifyPassword,
 } from './auth.js';
@@ -85,8 +86,12 @@ async function getSession(request, db) {
   const artist = await activeArtist(db, request);
   if (!artist) return json(null, 200);
 
+  return json(artistState(artist), 200);
+}
+
+function artistState(artist) {
   const { profile, works, events } = JSON.parse(artist.draft);
-  return json({
+  return {
     id: artist.id,
     slug: artist.slug,
     revision: artist.revision,
@@ -94,7 +99,26 @@ async function getSession(request, db) {
     works,
     events,
     publication: JSON.parse(artist.publication ?? 'null'),
-  }, 200);
+  };
+}
+
+async function saveDraft(request, db, body) {
+  const artist = await activeArtist(db, request);
+  if (!artist) return json({ error: 'Entre para salvar o rascunho.' }, 401);
+  const conflict = () => json({ error: 'A conta ou o rascunho mudou. Recarregue a página.' }, 409);
+  if (body.id !== artist.id || body.revision !== artist.revision) return conflict();
+
+  const draft = { profile: body.profile, works: body.works, events: body.events };
+  const error = draftError(draft);
+  if (error) return json({ error }, 400);
+  draft.profile = { ...draft.profile, instagram: normalizeInstagram(draft.profile.instagram) };
+
+  const updated = await db.prepare(`
+    UPDATE artists SET draft = ?, revision = revision + 1
+    WHERE id = ? AND revision = ?
+    RETURNING id, slug, draft, revision, publication
+  `).bind(JSON.stringify(draft), artist.id, body.revision).first();
+  return updated ? json(artistState(updated), 200) : conflict();
 }
 
 async function logout(request, db) {
@@ -108,6 +132,7 @@ async function logout(request, db) {
 const postRoutes = new Map([
   ['/api/register', register],
   ['/api/login', login],
+  ['/api/draft', saveDraft],
   ['/api/logout', logout],
 ]);
 
