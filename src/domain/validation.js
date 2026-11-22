@@ -12,7 +12,14 @@ export function validDate(value) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+export function isPublicEvent(event) {
+  return event?.visibility === 'public';
+}
+
 export function validateEvent(event) {
+  if (event?.visibility !== undefined && !['private', 'public'].includes(event.visibility)) {
+    return 'Escolha uma visibilidade válida para a apresentação.';
+  }
   if (typeof event?.title !== 'string' || !event.title.trim()) return 'Dê um nome à apresentação.';
   if (!validDate(event.date)) return 'Informe uma data válida.';
   if (typeof event.time !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(event.time)) {

@@ -105,3 +105,23 @@ test('data impossível na agenda retorna 400 e preserva os dados e a revisão do
   assert.match((await resposta.json()).error, /data/i);
   assert.deepEqual(await artista.ler(), antes);
 });
+
+test('rascunho preserva eventos privados, públicos e antigos e permite desmarcar um recital', async (t) => {
+  const artista = await conta(banco(t), 'ana');
+  const evento = { id: 'antigo', title: 'Recital', venue: 'Sala', date: '2026-11-24', time: '19:00' };
+  const events = [evento, { ...evento, id: 'ensaio', visibility: 'private' },
+    { ...evento, id: 'concerto', visibility: 'public' }];
+  const estado = await artista.ler();
+  assert.equal((await artista.salvar({ ...estado, events })).status, 200);
+  const salvo = await artista.ler();
+  assert.deepEqual(salvo.events, events);
+
+  const privados = events.map(e => ({ ...e, visibility: 'private' }));
+  assert.equal((await artista.salvar({ ...salvo, events: privados })).status, 200);
+  const atualizado = await artista.ler();
+  assert.deepEqual(atualizado.events, privados);
+
+  const invalido = [{ ...evento, visibility: 'talvez' }];
+  assert.equal((await artista.salvar({ ...atualizado, events: invalido })).status, 400);
+  assert.deepEqual(await artista.ler(), atualizado);
+});
