@@ -2,7 +2,7 @@ import { validateEvent, validateProfile, validateWork } from './validation.js';
 
 const COLLECTION_FIELDS = {
   works: new Set(['id', 'title', 'url', 'type', 'description']),
-  events: new Set(['id', 'title', 'date', 'time', 'venue', 'city', 'type', 'ticket', 'description']),
+  events: new Set(['id', 'title', 'date', 'time', 'venue', 'city', 'type', 'ticket', 'description', 'visibility']),
 };
 
 export function draftError(draft) {

@@ -85,3 +85,11 @@ test('calendário inclui 29 de fevereiro em ano bissexto e atravessa dezembro e 
   assert.equal(janeiro.at(-1), 31);
   assert.deepEqual(collections.calendarDays(2027, -1), collections.calendarDays(2026, 11));
 });
+
+test('só uma apresentação marcada explicitamente como pública entra no portfólio', () => {
+  assert.equal(validation.isPublicEvent(recital), false);
+  for (const visibility of ['private', '', 'PUBLIC', true, null]) {
+    assert.equal(validation.isPublicEvent({ ...recital, visibility }), false);
+  }
+  assert.equal(validation.isPublicEvent({ ...recital, visibility: 'public' }), true);
+});
