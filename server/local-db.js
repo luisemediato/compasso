@@ -33,6 +33,10 @@ export function openDatabase(filename) {
 
     function bind(...values) {
       return {
+        all() {
+          return { results: statement.all(...values) };
+        },
+
         first() {
           return statement.get(...values) ?? null;
         },
