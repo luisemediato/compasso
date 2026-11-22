@@ -124,3 +124,65 @@ test('duas abas na mesma revisão só alteram a publicação uma vez', async (t)
   assert.equal((await artista('unpublish', versao(salvo))).status, 409);
   assert.deepEqual(await sucesso(await artista('session')), vencedora);
 });
+
+test('catálogo anônimo exibe só a versão publicada, até a republicação ou retirada', async (t) => {
+  const db = banco(t);
+  const artista = await conta(db);
+  const rascunho = await preparar(artista);
+  const listar = async (filtros = '') => sucesso(await chamar(db, 'artists' + filtros, ''));
+  assert.deepEqual(await listar(), []);
+
+  const primeira = await sucesso(await artista('publish', versao(rascunho)));
+  assert.deepEqual(await listar(), [primeira.publication]);
+  assert.deepEqual(primeira.publication.events, [rascunho.events[0]]);
+
+  primeira.events[0].visibility = 'private';
+  primeira.profile.city = 'São João';
+  const salvo = await sucesso(await artista('draft', primeira));
+  assert.deepEqual(await listar(), [primeira.publication]);
+  assert.deepEqual(await listar('?q=sao'), []);
+
+  const segunda = await sucesso(await artista('publish', versao(salvo)));
+  assert.deepEqual(await listar('?q=sao&instrument=viola'), [segunda.publication]);
+  assert.deepEqual(segunda.publication.events, []);
+  assert.deepEqual(await listar('?q=sao&instrument=piano'), []);
+
+  await sucesso(await artista('unpublish', versao(segunda)));
+  assert.deepEqual(await listar(), []);
+});
+
+test('catálogo público exige GET e informa o método permitido', async (t) => {
+  const resposta = await chamar(banco(t), 'artists', '', {});
+  assert.equal(resposta.status, 405);
+  assert.equal(resposta.headers.get('Allow'), 'GET');
+});
+
+test('link direto e HEAD acompanham publicação e retirada sem exigir sessão', async (t) => {
+  const db = banco(t);
+  const artista = await conta(db, 'ana-viola');
+  const salvo = await preparar(artista);
+  const abrir = (path, method = 'GET') => handleRequest(new Request('https://compasso.test' + path, { method }),
+    request => {
+      assert.equal(new URL(request.url).pathname, '/index.html');
+      return new Response('<title>Compasso</title>', { headers: { 'Content-Type': 'text/html' } });
+    }, db);
+
+  for (const path of ['/ana-viola', '/desconhecido', '/rota/invalida']) {
+    assert.equal((await abrir(path)).status, 404, path);
+  }
+  assert.equal((await abrir('/explorar')).status, 200);
+  const publicada = await sucesso(await artista('publish', versao(salvo)));
+  const pagina = await abrir('/ana-viola');
+  assert.equal(pagina.status, 200);
+  assert.match(await pagina.text(), /Compasso/);
+  const head = await abrir('/ana-viola', 'HEAD');
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get('Content-Type'), pagina.headers.get('Content-Type'));
+  assert.equal(await head.text(), '');
+
+  await sucesso(await artista('unpublish', versao(publicada)));
+  assert.equal((await abrir('/ana-viola')).status, 404);
+  const retirado = await abrir('/ana-viola', 'HEAD');
+  assert.equal(retirado.status, 404);
+  assert.equal(await retirado.text(), '');
+});

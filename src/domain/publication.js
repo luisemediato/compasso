@@ -28,3 +28,16 @@ export function hasUnpublishedChanges(draft, publication) {
     || !sameList(works, publication.works)
     || !sameList(events, publication.events);
 }
+
+function searchText(value) {
+  return (value ?? '').trim().normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase();
+}
+
+export function searchArtists(publications, query = '', instrument = '') {
+  const term = searchText(query);
+  const selected = searchText(instrument);
+  return publications.filter(({ profile }) => {
+    if (selected && searchText(profile.instrument) !== selected) return false;
+    return [profile.name, profile.city, profile.instrument].some(value => searchText(value).includes(term));
+  });
+}

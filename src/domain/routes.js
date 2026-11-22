@@ -1,5 +1,3 @@
-import { isValidSlug } from './validation.js';
-
 const pagePaths = {
   home: '/',
   explore: '/explorar',
@@ -17,6 +15,12 @@ const pagePaths = {
 const routesByPath = new Map(
   Object.entries(pagePaths).map(([route, path]) => [path, route])
 );
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isValidSlug(slug) {
+  return typeof slug === 'string' && SLUG_PATTERN.test(slug) && !routesByPath.has('/' + slug);
+}
 
 export function routeFromPath(path) {
   if (routesByPath.has(path)) {
@@ -47,7 +51,7 @@ export function pathFromRoute(route) {
   const slug = route.slice('artist/'.length);
   const path = `/${slug}`;
 
-  if (!isValidSlug(slug) || routesByPath.has(path)) {
+  if (!isValidSlug(slug)) {
     return '/';
   }
 
