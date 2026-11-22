@@ -1,4 +1,4 @@
-import { validateProfile } from './validation.js';
+import { validateProfile, validateWork } from './validation.js';
 
 const COLLECTION_FIELDS = {
   works: new Set(['id', 'title', 'url', 'type', 'description']),
@@ -20,6 +20,10 @@ export function draftError(draft) {
         if (!fields.has(key) || typeof value !== 'string' || value.length > 4000) {
           return 'Campo de registro inválido.';
         }
+      }
+      if (collection === 'works') {
+        const workError = validateWork(row);
+        if (workError) return workError;
       }
       ids.add(row.id);
     }
