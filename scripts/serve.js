@@ -56,7 +56,7 @@ const server = createServer(async (incoming, outgoing) => {
     }
 
     const request = new Request(url, options);
-    const response = await handleRequest(request, fetchAsset, db);
+    const response = await handleRequest(request, fetchAsset, db, incoming.socket.remoteAddress);
 
     outgoing.writeHead(response.status, Object.fromEntries(response.headers));
     outgoing.end(Buffer.from(await response.arrayBuffer()));

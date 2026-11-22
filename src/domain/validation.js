@@ -74,6 +74,10 @@ export function normalizeInstagram(input) {
   return `https://www.instagram.com/${username}/`;
 }
 
+export function hasEmailFormat(value) {
+  return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export function validateProfile(profile, { requireInstrument = true } = {}) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return 'Perfil inválido.';
   for (const [field, value] of Object.entries(profile)) {
@@ -85,7 +89,7 @@ export function validateProfile(profile, { requireInstrument = true } = {}) {
   if (requireInstrument && !profile.instrument?.trim()) return 'Informe seu instrumento.';
   if (profile.bio?.length > 3000) return 'Use até 3000 caracteres na trajetória.';
   const email = profile.email?.trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Informe um e-mail válido.';
+  if (email && !hasEmailFormat(email)) return 'Informe um e-mail válido.';
   if (profile.instagram?.trim() && !normalizeInstagram(profile.instagram)) return 'Informe o usuário ou o link de perfil do Instagram.';
   return '';
 }

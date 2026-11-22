@@ -1,5 +1,6 @@
 import { createPublication, searchArtists } from '../src/domain/publication.js';
-import { normalizeInstagram } from '../src/domain/validation.js';
+import { retryAfter } from './request-limits.js';
+import { hasEmailFormat, normalizeInstagram } from '../src/domain/validation.js';
 import { randomUUID } from 'node:crypto';
 import { accountError, draftError, newDraft } from '../src/domain/account.js';
 import {
@@ -21,6 +22,18 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function tooManyRequests(seconds) {
+  return json({ error: 'Muitas tentativas. Aguarde antes de tentar novamente.' }, 429, {
+    'Retry-After': String(seconds),
+  });
+}
+
+async function authRetryAfter(db, action, ip, ipLimit, email) {
+  const wait = await retryAfter(db, action, 'ip', ip, ipLimit);
+  if (wait) return wait;
+  return retryAfter(db, action, 'email', email, 15);
+}
+
 async function startSession(request, db, artistId, status, statements = []) {
   const session = newSession(db, artistId);
   const removeOld = db.prepare('DELETE FROM sessions WHERE expires <= ? OR digest = ?')
@@ -32,8 +45,10 @@ async function startSession(request, db, artistId, status, statements = []) {
   });
 }
 
-async function register(request, db, body) {
+async function register(request, db, body, ip) {
   const email = normalizeEmail(body.email);
+  const wait = await authRetryAfter(db, 'register', ip, 35, email);
+  if (wait) return tooManyRequests(wait);
 
   const reason = accountError({ ...body, email });
   if (reason) return json({ error: reason }, 400);
@@ -67,8 +82,10 @@ async function register(request, db, body) {
   }
 }
 
-async function login(request, db, body) {
+async function login(request, db, body, ip) {
   const email = normalizeEmail(body.email);
+  const wait = await authRetryAfter(db, 'login', ip, 80, email);
+  if (wait) return tooManyRequests(wait);
   const password = body.password;
   if (!email || email.length > 254 || typeof password !== 'string'
       || password.length === 0 || password.length > 128) {
@@ -162,7 +179,22 @@ async function logout(request, db) {
   return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(request, '') });
 }
 
+async function contact(_request, db, body, ip) {
+  const { email, message } = body;
+  if (!hasEmailFormat(email) || email.length > 254 ||
+      typeof message !== 'string' || !message.trim() || message.length > 2000) {
+    return json({ error: 'Informe um e-mail válido e uma mensagem de até 2.000 caracteres.' }, 400);
+  }
+  const wait = await retryAfter(db, 'contact', 'ip', ip, 8);
+  if (wait) return tooManyRequests(wait);
+
+  await db.prepare('INSERT INTO team_messages (id, email, message, created_at) VALUES (?, ?, ?, ?)')
+    .bind(randomUUID(), email.trim(), message.trim(), new Date().toISOString()).run();
+  return json({ ok: true }, 201);
+}
+
 const postRoutes = new Map([
+  ['/api/contact', contact],
   ['/api/register', register],
   ['/api/login', login],
   ['/api/draft', withCurrentArtist(saveDraft)],
@@ -212,7 +244,7 @@ async function listArtists(db, filters) {
   return json(searchArtists(publications, filters.get('q'), filters.get('instrument')), 200);
 }
 
-export async function api(request, db) {
+export async function api(request, db, ip = 'local') {
   const url = new URL(request.url);
 
   if (url.pathname === '/api/session' || url.pathname === '/api/artists') {
@@ -250,5 +282,5 @@ export async function api(request, db) {
     return json({ error: 'Dados inválidos.' }, 400);
   }
 
-  return handler(request, db, body);
+  return handler(request, db, body, ip);
 }
