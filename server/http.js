@@ -10,11 +10,11 @@ async function pageExists(path, db) {
   return Boolean(row);
 }
 
-export async function handleRequest(request, fetchAsset, db) {
+export async function handleRequest(request, fetchAsset, db, ip) {
   const url = new URL(request.url);
 
   if (url.pathname.startsWith('/api/')) {
-    return api(request, db);
+    return api(request, db, ip);
   }
 
   if (!['GET', 'HEAD'].includes(request.method)) {
