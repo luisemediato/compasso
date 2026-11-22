@@ -8,7 +8,7 @@ const perfil = { ...account.newDraft('Ana Cordas').profile, instrument: 'Viola' 
 test('perfil aceita contato vazio ou e-mail e link públicos válidos', () => {
   assert.equal(validation.validateProfile(perfil), '');
   assert.equal(validation.validateProfile({
-    ...perfil, email: 'ana@example.test', instagram: 'https://example.test/ana',
+    ...perfil, email: 'ana@example.test', instagram: 'https://www.instagram.com/ana/',
   }), '');
 });
 
@@ -59,4 +59,27 @@ test('coleções limitam quantidade, campos e IDs repetidos dentro de cada cole�
     assert.ok(account.draftError({ ...draft, works: invalida }));
   }
   assert.ok(account.draftError({ ...draft, events: [{ id: 'evento com espaços' }] }));
+});
+
+test('normaliza usuário, arroba e URL para o mesmo perfil do Instagram', () => {
+  const canonical = 'https://www.instagram.com/ana.viola/';
+  for (const input of ['ana.viola', ' @Ana.Viola ', canonical,
+    'https://instagram.com/ana.viola?igsh=teste']) {
+    assert.equal(validation.normalizeInstagram(input), canonical);
+    assert.equal(validation.validateProfile({ ...perfil, instagram: input }), '');
+  }
+});
+
+test('Instagram vazio continua opcional e não gera link', () => {
+  assert.equal(validation.normalizeInstagram('   '), '');
+  assert.equal(validation.validateProfile({ ...perfil, instagram: '' }), '');
+});
+
+test('recusa outro domínio, publicações e entradas que não identificam um perfil', () => {
+  for (const input of ['https://example.test/ana', 'https://instagram.com.exemplo.test/ana',
+    'https://instagram.com/p/foto/', 'https://instagram.com/', 'https://instagram.com/reels/',
+    'ana viola', '@', 'ana..viola']) {
+    assert.ok(validation.validateProfile({ ...perfil, instagram: input }), input);
+    assert.equal(validation.normalizeInstagram(input), '');
+  }
 });
