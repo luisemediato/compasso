@@ -1,5 +1,11 @@
 const PROFILE_FIELDS = new Set(['name', 'instrument', 'city', 'headline', 'bio', 'email', 'instagram']);
 
+export function validateWork(work) {
+  if (typeof work?.title !== 'string' || !work.title.trim()) return 'Informe o título do trabalho.';
+  if (!safeUrl(work.url)) return 'Informe um link HTTP ou HTTPS para o trabalho.';
+  return '';
+}
+
 export function safeUrl(value) {
   if (typeof value !== 'string') return '';
   try {

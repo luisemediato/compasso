@@ -39,7 +39,7 @@ test('salva perfil, trabalhos e eventos, normaliza Instagram e permite removê-l
   const estado = await artista.ler();
   estado.profile.instagram = '@Ana.Viola';
   estado.profile.bio = 'Viola de arco';
-  estado.works.push({ id: 'obra-1', title: 'Concerto' });
+  estado.works.push({ id: 'obra-1', title: 'Concerto', url: 'https://example.test/concerto' });
   estado.events.push({ id: 'evento-1', title: 'Recital' });
   const resposta = await artista.salvar(estado);
   assert.equal(resposta.status, 200);
