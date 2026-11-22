@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { openDatabase } from '../../server/local-db.js';
 import { handleRequest } from '../../server/http.js';
 
@@ -156,4 +159,41 @@ test('login e logout exigem POST e a consulta de sessão exige GET', async (t) =
   const resposta = await requisitar(db, 'session', { dados: {} });
   assert.equal(resposta.status, 405);
   assert.equal(resposta.headers.get('Allow'), 'GET');
+});
+
+test('reabrir o SQLite recupera o rascunho e mantém as duas contas independentes', async (t) => {
+  const pasta = await mkdtemp(join(tmpdir(), 'compasso-persistencia-'));
+  const arquivo = join(pasta, 'compasso.sqlite');
+  let db;
+  t.after(async () => {
+    db?.close();
+    await rm(pasta, { recursive: true, force: true });
+  });
+  db = openDatabase(arquivo);
+
+  const bia = { ...conta, fullName: 'Bia Lopes', name: 'Bia', email: 'bia@example.test', slug: 'bia' };
+  const cookieAna = await cadastrar(db);
+  const cookieBia = cookieEmitido(await requisitar(db, 'register', { dados: bia }), 201);
+  const estadoBia = await consultar(db, cookieBia);
+  const ana = await consultar(db, cookieAna);
+  assert.notEqual(ana.id, estadoBia.id);
+
+  ana.profile.instrument = 'Viola de arco';
+  ana.works.push({ id: 'w1', title: 'Quarteto', url: 'https://example.test/quarteto' });
+  ana.events.push({ id: 'e1', title: 'Recital', venue: 'Teatro', date: '2026-11-24', time: '19:00' });
+  const resposta = await requisitar(db, 'draft', { dados: ana, cookie: cookieAna });
+  assert.equal(resposta.status, 200);
+  const esperado = { ...ana, revision: ana.revision + 1 };
+  assert.deepEqual(await resposta.json(), esperado);
+
+  db.close();
+  db = undefined;
+  db = openDatabase(arquivo);
+
+  for (const [artista, anterior, estado] of [[conta, cookieAna, esperado], [bia, cookieBia, estadoBia]]) {
+    const dados = { email: artista.email, password: artista.password };
+    const novo = cookieEmitido(await requisitar(db, 'login', { dados }), 200);
+    assert.notEqual(novo, anterior);
+    assert.deepEqual(await consultar(db, novo), estado);
+  }
 });
