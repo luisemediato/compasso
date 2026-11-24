@@ -63,15 +63,19 @@ Se outra aba salvar primeiro, a tela preserva os campos e oferece **Recarregar r
 
 ### Hospedagem e verificação pública
 
+Endereço de produção: https://compasso.compasso-ufmg-2026.workers.dev
+
 O Cloudflare Worker serve interface e API no mesmo endereço; o D1 mantém os dados. A configuração está em `wrangler.json`. O workflow publica somente em push na `main`, depois de unidade, integração, cobertura e E2E aprovados nos três sistemas. Antes de publicar, aplica as migrações pendentes no D1 remoto. Os secrets `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_API_TOKEN` ficam no GitHub Actions; `CODECOV_TOKEN` permite enviar a cobertura. Os valores dessas credenciais não fazem parte do repositório.
+
+No primeiro deploy, a API cadastra `compasso-ufmg-2026.workers.dev` se a conta ainda não tiver subdomínio. Um endereço existente é preservado. Essa etapa usa a permissão `Workers Scripts Write` do token.
 
 O job de produção registra a URL no resumo do run e executa o smoke contra ela. O script exige status 200 e conteúdo esperado da home, CSS, JavaScript, API pública e rota direta. O arquivo público `/version.json` registra o SHA; no Actions, o smoke exige que ele corresponda ao commit aprovado. Localmente, o build identifica a revisão como `local`.
 
-Para repetir a verificação, execute `npm run test:smoke -- https://URL-REAL`. Para conferir um portfólio existente, passe seu caminho: `npm run test:smoke -- https://URL-REAL /slug-publicado`. A variável `COMPASSO_REVISION` permite exigir um SHA específico. O smoke não cria contas nem mensagens. `npm run deploy:check` só confere o pacote do Worker, sem publicar ou migrar o banco remoto.
+Para repetir a verificação, execute `npm run test:smoke -- https://compasso.compasso-ufmg-2026.workers.dev`. Para conferir um portfólio existente, passe seu caminho: `npm run test:smoke -- https://compasso.compasso-ufmg-2026.workers.dev /slug-publicado`. A variável `COMPASSO_REVISION` permite exigir um SHA específico. O smoke não cria contas nem mensagens. `npm run deploy:check` só confere o pacote do Worker, sem publicar ou migrar o banco remoto.
 
 ### Evidências e vídeo
 
-A suíte atual contém **85 unitários**, **76 integrações** e **11 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
+A suíte atual contém **85 unitários**, **79 integrações** e **11 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
 
 O [roteiro do vídeo](docs/roteiro-video.md) organiza uma apresentação de até 5 minutos com sistema, tecnologias, uso de IA e testes. A dupla ainda precisa gravar, publicar o vídeo no YouTube e enviar os cinco links no Moodle. O histórico pode ser conferido com `git rev-list --count --no-merges origin/main` após `git fetch origin`.
 
