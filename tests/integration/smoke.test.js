@@ -28,3 +28,10 @@ test('smoke reprova status, conteúdo, MIME e catálogo inválidos', async () =>
   }
   await assert.rejects(verifyDeployment('https://compasso.example', { fetcher: async url => url.pathname === '/api/artists' ? Response.json({ error: 'indisponível' }) : asset(url) }));
 });
+
+test('smoke exige o SHA aprovado quando a revisão esperada é informada', async () => {
+  const fetcher = async url => url.pathname === '/version.json' ? Response.json({ revision: 'sha-aprovado' }) : asset(url);
+  const results = await verifyDeployment('https://compasso.example', { fetcher, expectedRevision: 'sha-aprovado' });
+  assert.equal(results.at(-1).revision, 'sha-aprovado');
+  await assert.rejects(verifyDeployment('https://compasso.example', { fetcher, expectedRevision: 'outro-sha' }), /commit publicado/);
+});
