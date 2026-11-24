@@ -383,3 +383,51 @@ test('busca mais recente prevalece sobre o catálogo inicial atrasado', async t 
   await initial;
   assert.match(ctx.document.querySelector('[data-results]').textContent, /Nenhum músico/);
 });
+
+for (const [route, collection, fields] of [
+  ['/trabalhos', 'works', { url: 'https://example.com/recital' }],
+  ['/agenda', 'events', { date: '2026-11-24', time: '19:30', venue: 'Auditório' }],
+]) {
+  for (const delayed of [false, true]) {
+    const scenario = delayed ? 'voltar durante salvamento' : 'cancelar edição';
+    test(`preserva os dois registros em ${route} após ${scenario}`, async t => {
+      let saved = account();
+      const started = Promise.withResolvers();
+      const response = Promise.withResolvers();
+      const api = async (path, body) => {
+        if (path === '/api/session') return structuredClone(saved);
+        assert.equal(path, '/api/draft');
+        assert.equal(body.revision, saved.revision);
+        saved = { ...saved, ...body, revision: saved.revision + 1 };
+        if (delayed && saved.revision === 1) {
+          started.resolve();
+          await response.promise;
+        }
+        return structuredClone(saved);
+      };
+      const ctx = open(t, route, api);
+      await ctx.app.ready;
+      fill(ctx.window, { ...fields, title: 'Recital A' });
+      const firstSave = submit(ctx);
+      if (delayed) {
+        await started.promise;
+        for (const path of ['/painel', route]) {
+          ctx.document.querySelector(`a[href="${path}"]`).click();
+          await ctx.app.idle();
+        }
+        response.resolve();
+      }
+      await firstSave;
+      if (!delayed) {
+        ctx.document.querySelector('[data-edit]').click();
+        ctx.document.querySelector('[data-cancel]').click();
+      }
+      fill(ctx.window, { ...fields, title: 'Recital B' });
+      await submit(ctx);
+      assert.deepEqual(saved[collection].map(item => item.title), ['Recital A', 'Recital B']);
+      const reload = open(t, route, api);
+      await reload.app.ready;
+      assert.equal(reload.document.querySelectorAll('[data-edit]').length, 2);
+    });
+  }
+}

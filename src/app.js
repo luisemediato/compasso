@@ -185,8 +185,9 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     } else if (route === 'works' || route === 'agenda') {
       const isAgenda = route === 'agenda';
       main.innerHTML = isAgenda ? renderAgenda(state.events, today()) : renderWorksPage(state.works);
-      bindCollection({ main, window, items: isAgenda ? state.events : state.works,
-        collection: isAgenda ? 'events' : 'works', validate: isAgenda ? validateEvent : validateWork,
+      const collection = isAgenda ? 'events' : 'works';
+      bindCollection({ main, window, collection, getItems: () => state[collection],
+        validate: isAgenda ? validateEvent : validateWork,
         bindForm, save: saveDraft, refresh: renderCurrentPage, run });
       if (isAgenda) {
         let [year, month] = today().split('-').map(Number);
