@@ -11,7 +11,8 @@ test('abrir Explorar e voltar pelo histórico restaura a home', async (t) => {
   const { document } = window;
   t.after(() => window.close());
 
-  startApp(window);
+  const app = startApp(window, { api: async path => path === '/api/session' ? null : [] });
+  await app.ready;
 
   const explorar = document.querySelector('main a[href="/explorar"]');
   assert.ok(explorar, 'a home deve oferecer o link Explorar');
@@ -19,7 +20,7 @@ test('abrir Explorar e voltar pelo histórico restaura a home', async (t) => {
   explorar.click();
 
   assert.equal(window.location.pathname, '/explorar');
-  assert.match(document.querySelector('main').textContent, /Explorar estará disponível em breve/);
+  assert.equal(document.querySelector('main h2').textContent, 'Explorar');
 
   const voltou = new Promise(resolve => {
     window.addEventListener('popstate', resolve, { once: true });
@@ -40,6 +41,6 @@ test('abrir Explorar e voltar pelo histórico restaura a home', async (t) => {
   assert.equal(window.location.pathname, '/explorar');
   assert.match(
     document.querySelector('main').textContent,
-    /Explorar estará disponível em breve/
+    /Explorar/
   );
 });

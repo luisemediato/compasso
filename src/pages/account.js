@@ -14,8 +14,9 @@ export function renderLogin() {
     <h2>Entrar</h2>
     <form method="post">
       ${credentials('current-password')}
-      <button type="submit" disabled>Entrar</button>
-      <p>O acesso estará disponível quando a autenticação estiver integrada.</p>
+      <p data-error role="alert" tabindex="-1"></p>
+      <button type="submit">Entrar</button>
+      <a href="/cadastro">Criar conta</a>
     </form>
   `;
 }
@@ -34,8 +35,9 @@ export function renderRegister() {
         <input name="slug" autocapitalize="none" spellcheck="false" required>
       </label>
       ${credentials('new-password')}
-      <button type="submit" disabled>Cadastrar</button>
-      <p>O envio estará disponível quando o cadastro estiver integrado.</p>
+      <p>Use uma senha de 8 a 128 caracteres com pelo menos um caractere especial.</p>
+      <p data-error role="alert" tabindex="-1"></p>
+      <button type="submit">Cadastrar</button>
     </form>
   `;
 }

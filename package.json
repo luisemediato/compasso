@@ -12,7 +12,10 @@
     "test:integration": "node --test tests/integration/*.test.js",
     "test:coverage": "c8 node --test \"tests/unit/*.test.js\" \"tests/integration/*.test.js\"",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "worker:dev": "npm run build && wrangler dev --local"
+    "worker:dev": "npm run build && wrangler dev --local",
+    "test:e2e": "playwright test",
+    "test:e2e:parallel": "playwright test --workers=4",
+    "test:smoke": "node scripts/smoke.js"
   },
   "repository": {
     "type": "git",
@@ -27,6 +30,7 @@
   },
   "homepage": "https://github.com/luisemediato/compasso#readme",
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "c8": "^10.1.3",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.2",
