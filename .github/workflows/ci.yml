@@ -72,6 +72,12 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Preparar endereço gratuito workers.dev
+        run: node scripts/workers-subdomain.js
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          COMPASSO_WORKERS_SUBDOMAIN: compasso-ufmg-2026
       - name: Publicar o SHA aprovado
         id: publish
         uses: cloudflare/wrangler-action@v4
