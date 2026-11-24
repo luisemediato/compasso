@@ -51,7 +51,7 @@ O GitHub Actions executa as verificações em Linux, Windows e macOS. A cobertur
 
 Antes do primeiro E2E, execute `npx playwright install chromium` (no Linux, use `npx playwright install --with-deps chromium`). O Playwright faz o build, inicia o servidor na porta **4183** e cria um SQLite **em memória**, separado de `.local/compasso.sqlite`. Deixe essa porta livre. Cada teste usa uma identidade própria; os testes de publicação abrem um segundo contexto sem sessão. Os 11 cenários seguem a lista do roteiro: cadastro/login, perfil, criar/editar/excluir apresentação, trabalho na prévia, caminhos da home, edição privada após publicar, retirada, acesso direto com republicação e contato.
 
-O relatório fica em `playwright-report/index.html`; use `npx playwright show-report` para abri-lo. Em falhas há screenshot e trace em `test-results/`. O Actions executa os E2E em paralelo, com dois workers em cada sistema, e guarda os artifacts `playwright-ubuntu-latest`, `playwright-windows-latest` e `playwright-macos-latest`, inclusive quando um teste falha. O job que reúne as verificações mantém o identificador `unit`, para a futura dependência de deploy.
+O relatório fica em `playwright-report/index.html`; use `npx playwright show-report` para abri-lo. Em falhas há screenshot e trace em `test-results/`. O Actions executa os E2E em paralelo, com dois workers em cada sistema, e guarda os artifacts `playwright-ubuntu-latest`, `playwright-windows-latest` e `playwright-macos-latest`, inclusive quando um teste falha. O job `deploy` depende da aprovação de toda a matriz `unit`.
 
 ### Usar o sistema
 
@@ -63,8 +63,16 @@ Se outra aba salvar primeiro, a tela preserva os campos e oferece **Recarregar r
 
 ### Hospedagem e verificação pública
 
-Esta base já usa Cloudflare Workers + D1. A configuração local está em `wrangler.json`; o [PR #29](https://github.com/luisemediato/compasso/pull/29) trata do deploy, sob responsabilidade do Luís no bloco 47. Antes de publicar, ainda é necessário integrar a configuração remota do D1, conferir os secrets, aplicar migrações remotas e concluir o job de deploy condicionado às matrizes verdes e ao push em `main`. O commit publicado deve ser o mesmo aprovado pelos testes. Um `deploy --dry-run` não publica o sistema.
+O Cloudflare Worker serve interface e API no mesmo endereço; o D1 mantém os dados. A configuração está em `wrangler.json`. O workflow publica somente em push na `main`, depois de unidade, integração, cobertura e E2E aprovados nos três sistemas. Antes de publicar, aplica as migrações pendentes no D1 remoto. Os secrets `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_API_TOKEN` ficam no GitHub Actions; `CODECOV_TOKEN` permite enviar a cobertura. Os valores dessas credenciais não fazem parte do repositório.
 
-Após a publicação, execute `npm run test:smoke -- https://URL-REAL`. Para conferir também um portfólio existente, passe seu caminho: `npm run test:smoke -- https://URL-REAL /slug-publicado`. O script exige status 200 e conteúdo esperado da home, CSS, JavaScript, API pública e rota direta. A URL pública ainda precisa ser registrada após um deploy real.
+O job de produção registra a URL no resumo do run e executa o smoke contra ela. O script exige status 200 e conteúdo esperado da home, CSS, JavaScript, API pública e rota direta. O arquivo público `/version.json` registra o SHA; no Actions, o smoke exige que ele corresponda ao commit aprovado. Localmente, o build identifica a revisão como `local`.
+
+Para repetir a verificação, execute `npm run test:smoke -- https://URL-REAL`. Para conferir um portfólio existente, passe seu caminho: `npm run test:smoke -- https://URL-REAL /slug-publicado`. A variável `COMPASSO_REVISION` permite exigir um SHA específico. O smoke não cria contas nem mensagens. `npm run deploy:check` só confere o pacote do Worker, sem publicar ou migrar o banco remoto.
+
+### Evidências e vídeo
+
+A suíte atual contém **85 unitários**, **76 integrações** e **11 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
+
+O [roteiro do vídeo](docs/roteiro-video.md) organiza uma apresentação de até 5 minutos com sistema, tecnologias, uso de IA e testes. A dupla ainda precisa gravar, publicar o vídeo no YouTube e enviar os cinco links no Moodle. O histórico pode ser conferido com `git rev-list --count --no-merges origin/main` após `git fetch origin`.
 
 A Vercel não executa o binding `env.DB` do D1 como configuração nativa. O SQLite em arquivo usado em desenvolvimento também não persiste em Vercel Functions. Uma migração exigiria adaptar o entrypoint HTTP, conectar um banco remoto e revalidar transações, cookies e roteamento; publicar apenas `dist/public` não entrega cadastro nem persistência. Referências: [filesystem das Vercel Functions](https://vercel.com/docs/functions/runtimes#file-system-support) e [bindings D1 da Cloudflare](https://developers.cloudflare.com/d1/get-started/).
