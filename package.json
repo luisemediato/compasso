@@ -13,6 +13,7 @@
     "test:coverage": "c8 node --test \"tests/unit/*.test.js\" \"tests/integration/*.test.js\"",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "worker:dev": "npm run build && wrangler dev --local",
+    "deploy:check": "npm run build && wrangler deploy --dry-run",
     "test:e2e": "playwright test",
     "test:e2e:parallel": "playwright test --workers=4",
     "test:smoke": "node scripts/smoke.js"

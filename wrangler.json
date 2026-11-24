@@ -1,20 +1,23 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "compasso",
-  "main": "dist/server/index.js",
-  "compatibility_date": "2026-05-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "dist/public",
-    "binding": "ASSETS",
-    "run_worker_first": true,
-    "html_handling": "none"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "compasso",
-      "migrations_dir": "drizzle"
-    }
-  ]
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "compasso",
+	"main": "dist/server/index.js",
+	"compatibility_date": "2026-05-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "dist/public",
+		"binding": "ASSETS",
+		"run_worker_first": true,
+		"html_handling": "none"
+	},
+	"d1_databases": [
+	{
+		"binding": "DB",
+		"database_name": "compasso",
+		"database_id": "8172fa14-f7d2-4293-b4eb-afb73b22eaa4",
+		"migrations_dir": "drizzle"
+	}
+	]
 }
