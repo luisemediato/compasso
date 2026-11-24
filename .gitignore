@@ -2,3 +2,7 @@ node_modules/
 coverage/
 dist/
 .wrangler/
+.local/
+playwright-report/
+test-results/
+artifacts/
