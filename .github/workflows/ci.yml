@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   unit:
-    name: Testes unitários (${{ matrix.os }})
+    name: Unidade, integração e navegador (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,8 +20,21 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm test
       - run: npm run test:coverage
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Relatório E2E por sistema
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.os }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Enviar cobertura ao Codecov
         if: matrix.os == 'ubuntu-latest'

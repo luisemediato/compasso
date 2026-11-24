@@ -11,7 +11,7 @@ body {
 
 #app {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   min-height: 100vh;
 }
 
@@ -45,3 +45,28 @@ footer {
   height: auto;
   margin-block: 1rem;
 }
+
+[hidden] { display: none !important; }
+nav { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+[data-private], [data-notice] { padding: .75rem clamp(1rem, 5vw, 4rem); }
+[data-notice]:empty { padding: 0; }
+main { min-width: 0; }
+a { color: #275b43; overflow-wrap: anywhere; }
+button, input, textarea, select { font: inherit; }
+form { max-width: 42rem; display: grid; gap: 1rem; margin-block: 1rem 2rem; }
+label { display: grid; gap: .4rem; max-width: 42rem; }
+input, textarea, select { padding: .65rem; width: 100%; min-width: 0; border: 1px solid #718077; border-radius: .3rem; }
+textarea { min-height: 8rem; resize: vertical; }
+button { padding: .6rem 1rem; border: 1px solid #275b43; border-radius: .3rem; color: #173d2b; background: #edf4ee; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+:focus-visible { outline: 3px solid #96521b; outline-offset: 3px; }
+[role="alert"] { color: #972b25; }
+[role="alert"]:empty { display: none; }
+.cards { padding: 0; list-style: none; display: grid; gap: 1rem; }
+.cards li { padding: 1rem; border: 1px solid #d6dbd3; border-radius: .5rem; overflow-wrap: anywhere; }
+.cards button { margin: .25rem; }
+.calendar { max-width: 32rem; }
+.calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .2rem; margin-block: 1rem; }
+.calendar-days button { padding: .6rem 0; }
+[aria-pressed="true"] { background: #275b43; color: white; }
+.preserve-lines { white-space: pre-wrap; overflow-wrap: anywhere; }
