@@ -49,7 +49,8 @@ test('cadastro válido envia nome artístico no contrato e abre painel', async t
   fill(ctx.window, { fullName: 'Davi Balsamão', artistName: 'Davi', email: 'davi@example.com', password: 'senha123!', slug: 'davi-viola' });
   await submit(ctx);
   assert.equal(ctx.window.location.pathname, '/painel');
-  assert.match(ctx.document.querySelector('main').textContent, /Davi/);
+  assert.match(ctx.document.querySelector('main').textContent, /Olá, Davi/);
+  assert.equal(ctx.document.title, 'Painel | Compasso');
 });
 
 test('perfil preserva texto após falha e restaura o Instagram normalizado após salvar', async t => {
@@ -223,6 +224,8 @@ test('contato só confirma após a API concluir e conserva mensagem em caso de e
   fail = false;
   await submit(ctx);
   assert.match(ctx.document.body.textContent, /Mensagem recebida/);
+  assert.equal(ctx.document.querySelector('main a[href="/"]')?.textContent, 'Voltar ao início');
+  assert.equal(ctx.document.querySelector('main a[href="/"]').hidden, false);
   assert.equal(ctx.document.querySelector('[name="message"]').value, '');
 });
 
@@ -391,6 +394,7 @@ test('explorar combina texto e instrumento em tempo real e restaura o catálogo'
   ctx.document.querySelector('[data-results] a').click();
   await ctx.app.idle();
   assert.equal(ctx.window.location.pathname, '/davi-musico');
+  assert.equal(ctx.document.title, 'Davi | Compasso');
   assert.equal(ctx.document.querySelector('main h1').textContent, 'Davi');
 });
 
@@ -587,6 +591,7 @@ test('área do músico indica a seção ativa e separa o painel da prévia', asy
   assert.equal(currentLink()?.pathname, '/painel');
   const calendar = ctx.document.querySelector('[data-calendar]');
   assert.ok(calendar, 'o painel deve mostrar o calendário do mês');
+  assert.match(calendar.textContent, /Dia com apresentação/);
   const month = calendar.querySelector('h3').textContent;
   calendar.querySelector('[data-month="1"]').click();
   assert.notEqual(calendar.querySelector('h3').textContent, month);
@@ -612,15 +617,19 @@ test('área do músico indica a seção ativa e separa o painel da prévia', asy
 test('agenda combina o período e a busca sem ocultar registros antigos da lista completa', async t => {
   const saved = account();
   saved.events = [
-    { id: 'a', title: 'Recital anterior', date: '2010-01-05', venue: 'Sala' },
+    { id: 'a', title: 'Recital anterior', date: '2010-01-05', time: '09:00', venue: 'Sala' },
     { id: 'b', title: 'Recital futuro', date: '2099-06-01', venue: 'Teatro' },
+    { id: 'c', title: 'Recital noturno', date: '2010-01-05', time: '19:00', venue: 'Sala' },
+    { id: 'd', title: 'Recital seguinte', date: '2011-01-05', time: '09:00', venue: 'Sala' },
   ];
   const ctx = open(t, '/agenda', async () => saved);
   await ctx.app.ready;
   const list = ctx.document.querySelector('[data-list]');
-  assert.equal(list.querySelectorAll('li').length, 2);
+  assert.equal(list.querySelectorAll('li').length, 4);
+  assert.equal(ctx.document.querySelector('.side-nav [href="/agenda"] .nav-count')?.textContent, '1');
   ctx.document.querySelector('[value="past"]').click();
-  assert.match(list.textContent, /Recital anterior/);
+  assert.deepEqual([...list.querySelectorAll('h3')].map(node => node.textContent),
+    ['Recital seguinte', 'Recital noturno', 'Recital anterior']);
   assert.doesNotMatch(list.textContent, /Recital futuro/);
   ctx.document.querySelector('[value="upcoming"]').click();
   fill(ctx.window, { filter: 'Sala' });
@@ -699,3 +708,44 @@ test('um erro de busca atrasado não apaga os resultados mais recentes', async t
   assert.equal(ctx.document.querySelector('[data-results] h3').textContent, 'Bia');
   assert.doesNotMatch(ctx.document.body.textContent, /A busca anterior falhou/);
 });
+
+for (const [path, collection, extra, defaultType, chosen] of [
+  ['/trabalhos', 'works', { url: 'https://example.org/obra' }, 'Interpretação', 'Projeto'],
+  ['/agenda', 'events', { date: '2030-06-15', time: '20:00', venue: 'Sala' }, 'Recital', 'Concerto'],
+]) {
+  test(`${path}: oferece categorias e preserva o tipo de registros anteriores`, async t => {
+    let saved = account();
+    const legacy = 'Performance & improviso';
+    saved[collection] = [
+      { id: 'antigo', title: 'Registro antigo', type: legacy, ...extra },
+      { id: 'vazio', title: 'Sem classificação', ...extra },
+    ];
+    const ctx = open(t, path, async (route, body) => {
+      if (route === '/api/session') return saved;
+      saved = { ...saved, ...body, revision: saved.revision + 1 };
+      return saved;
+    });
+    await ctx.app.ready;
+    const type = () => ctx.document.querySelector('dialog select[name="type"]');
+    const click = selector => ctx.document.querySelector(selector).click();
+    click('[data-edit="antigo"]');
+    assert.equal(type()?.value, legacy);
+    fill(ctx.window, { title: 'Atualizado' });
+    await submit(ctx);
+    assert.equal(saved[collection][0].type, legacy);
+    click('[data-edit="vazio"]');
+    assert.equal(type().value, '');
+    click('[data-cancel]');
+    click('[data-edit="antigo"]');
+    type().value = chosen;
+    click('[data-cancel]');
+    assert.equal(saved[collection][0].type, legacy);
+    click('[data-new]');
+    assert.equal(type().value, defaultType);
+    assert.equal([...type().options].some(option => option.value === legacy), false);
+    fill(ctx.window, { ...extra, title: 'Novo', type: chosen });
+    await submit(ctx);
+    assert.equal(saved[collection].at(-1).type, chosen);
+    assert.equal(ctx.document.activeElement, ctx.document.querySelector('[data-new]'));
+  });
+}

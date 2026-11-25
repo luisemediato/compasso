@@ -8,7 +8,7 @@ test('20 · cadastra, ajusta slug, sai e entra novamente', async ({ page, identi
   await page.getByLabel('E-mail', { exact: true }).fill(identity.email);
   await page.getByLabel('Senha', { exact: true }).fill(identity.password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Painel de ' + identity.name })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Olá, ' + identity.name.split(' ')[0], exact: true })).toBeVisible();
 });
 
 test('24 · perfil e Instagram persistem após recarga e podem ser apagados', async ({ page, artist }) => {
@@ -60,10 +60,14 @@ test('32 · adiciona trabalho e encontra na prévia', async ({ page, artist }) =
   await addWork.click();
   await page.getByLabel('Título', { exact: true }).fill('Gravação ' + artist.name);
   await page.getByLabel('Link do trabalho').fill('https://example.com/gravacao');
+  await page.getByRole('combobox', { name: 'Categoria', exact: true }).selectOption('Projeto');
   await page.getByRole('button', { name: 'Salvar trabalho' }).click();
   await expect(page.getByRole('heading', { name: 'Gravação ' + artist.name })).toBeVisible();
   await page.getByRole('link', { name: 'Prévia', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Gravação ' + artist.name })).toBeVisible();
+  const cover = page.getByRole('link', { name: 'Abrir Gravação ' + artist.name, exact: true });
+  await expect(cover).toHaveAttribute('href', 'https://example.com/gravacao');
+  await expect(page.getByText('Projeto', { exact: true })).toBeVisible();
 });
 
 test('36/44 · home separa público e músico, teclado e tela estreita', async ({ page, identity }) => {
@@ -201,6 +205,9 @@ test('38 · contato confirma recebimento somente após resposta de gravação', 
   await page.getByRole('button', { name: 'Enviar mensagem' }).click();
   expect((await response).status()).toBe(201);
   await expect(page.getByRole('status')).toHaveText('Mensagem recebida pela equipe.');
+  await page.getByRole('link', { name: 'Voltar ao início' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveTitle('Compasso');
 });
 
 test('exporta o JSON antes e depois da publicação sem alterar o rascunho', async ({ page, artist }) => {

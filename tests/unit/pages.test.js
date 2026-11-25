@@ -74,6 +74,10 @@ test('portfólio mostra Instagram normalizado, contato escolhido e trabalhos', (
   assert.equal(doc.querySelector('a[href^="mailto:"]').getAttribute('href'), 'mailto:publico@example.com');
   assert.equal(doc.querySelector('[href^="mailto:"]').textContent, 'Entrar em contato');
   assert.match(doc.textContent, /Gravação/);
+  const cover = doc.querySelector('a.work-art');
+  assert.equal(cover?.href, 'https://example.com/');
+  assert.equal(cover.getAttribute('aria-label'), 'Abrir Gravação');
+  assert.match(cover.rel, /noopener/);
 });
 
 test('conteúdo do músico é escapado e links perigosos não viram âncoras', () => {
