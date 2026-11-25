@@ -44,6 +44,7 @@ export function renderShell() {
       <nav class="public-links portfolio-links" aria-label="Seções do portfólio">
         <a href="#portfolio-sobre">Sobre</a><a href="#portfolio-trabalhos">Trabalhos</a>
         <a href="#portfolio-agenda">Agenda</a><a href="#portfolio-contato">Contato</a>
+        <a class="portfolio-explore" href="/explorar">Explorar músicos</a>
       </nav>
       <div class="breadcrumb"><a href="/">Início</a><span aria-hidden="true">›</span><b data-current-page></b></div>
       <div class="account-links" data-guest><a href="/entrar">Entrar</a><a class="btn" href="/cadastro">Criar conta</a></div>

@@ -129,26 +129,53 @@ test('40 · retirada remove músico da busca e do endereço direto', async ({ pa
 
 test('40 · acesso direto, republicação e privacidade da agenda', async ({ page, artist, visitor }) => {
   await profile(page, artist.name);
-  await event(page, 'Ensaio privado');
-  await event(page, 'Concerto público', 'public');
+  const today = new Date('2030-06-15T12:00:00');
+  await page.clock.setFixedTime(today);
+  await visitor.clock.setFixedTime(today);
+  await event(page, 'Ensaio privado', 'private', { date: '2030-06-16' });
+  await event(page, 'Recital anterior', 'public', { date: '2030-06-14' });
+  await event(page, 'Próximo recital', 'public', { date: '2030-06-16' });
+  await event(page, 'Concerto público', 'public', {
+    description: 'Quarteto de cordas', ticket: 'https://example.org/ingressos',
+  });
+  await page.getByRole('link', { name: 'Prévia', exact: true }).click();
+  const titles = view => view.locator('#portfolio-agenda .event-info h3');
+  await expect(titles(page)).toHaveText(['Concerto público', 'Próximo recital']);
+  await page.getByRole('link', { name: 'Revisar publicação' }).click();
   await publish(page);
   expect((await visitor.goto('http://127.0.0.1:4183/' + artist.slug)).status()).toBe(200);
   await expect(visitor.getByRole('heading', { name: 'Concerto público' })).toBeVisible();
+  await expect(titles(visitor)).toHaveText(['Concerto público', 'Próximo recital']);
   await expect(visitor.getByText('Ensaio privado', { exact: true })).toHaveCount(0);
+  await expect(visitor.getByRole('banner').getByRole('link', { name: 'Explorar músicos' })).toBeVisible();
+  const details = visitor.getByRole('button', { name: 'Ver detalhes de Concerto público' });
+  await details.click();
+  const dialog = visitor.getByRole('dialog', { name: 'Concerto público' });
+  await expect(dialog.getByText('Quarteto de cordas')).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'Ver ingressos' })).toHaveAttribute('href', 'https://example.org/ingressos');
+  await visitor.keyboard.press('Escape');
+  await expect(details).toBeFocused();
   await visitor.getByRole('navigation', { name: 'Seções do portfólio' }).getByRole('link', { name: 'Contato' }).click();
-  await expect(visitor).toHaveURL(/#portfolio-contato$/);
+  await expect(visitor).toHaveURL('http://127.0.0.1:4183/' + artist.slug);
   await expect(visitor.getByRole('heading', { name: 'Vamos conversar?' })).toBeInViewport();
   await expect(visitor.getByRole('link', { name: 'Instagram', exact: true })).toHaveAttribute('href', 'https://www.instagram.com/davi/');
   await page.getByRole('link', { name: 'Agenda', exact: true }).click();
   await page.getByRole('button', { name: 'Editar Concerto público', exact: true }).click();
+  await page.getByLabel('Descrição').fill('Alteração só no rascunho');
   await page.getByLabel('Visibilidade').selectOption('private');
   await page.getByRole('button', { name: 'Salvar apresentação' }).click();
   await expect(page.getByRole('heading', { name: 'Concerto público' })).toBeVisible();
+  const direct = 'http://127.0.0.1:4183/' + artist.slug + '#portfolio-trabalhos';
+  await visitor.goto(direct);
   await visitor.reload();
-  await expect(visitor.getByRole('heading', { name: 'Concerto público' })).toBeVisible();
+  await expect(visitor.locator('#portfolio-trabalhos')).toBeInViewport();
+  await expect(visitor).toHaveURL(direct);
+  await details.click();
+  await expect(dialog.getByText('Quarteto de cordas')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Fechar' }).click();
   await publish(page);
   await visitor.reload();
-  await expect(visitor.getByText('Nenhuma apresentação encontrada.')).toBeVisible();
+  await expect(titles(visitor)).toHaveText(['Próximo recital']);
   await page.getByRole('link', { name: 'Agenda', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Concerto público' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ensaio privado' })).toBeVisible();

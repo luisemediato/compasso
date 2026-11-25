@@ -3,7 +3,7 @@ import { safeUrl } from '../domain/validation.js';
 import { emptyState, icon, itemActions } from './components.js';
 
 export function renderWorks(works, editable = false) {
-  if (!works.length) return emptyState('Nenhum trabalho cadastrado.');
+  if (!works.length) return emptyState(editable ? 'Nenhum trabalho cadastrado. Adicione seu primeiro trabalho.' : 'Novos registros musicais em breve.');
   return `<ul class="work-grid">${works.map(work => {
     const url = safeUrl(work.url);
     return `<li class="work-card">

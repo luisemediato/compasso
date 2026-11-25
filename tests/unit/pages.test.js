@@ -53,7 +53,7 @@ test('prévia omite contatos vazios, identidade privada e eventos sem opção p�
   draft.fullName = 'Nome civil secreto';
   draft.email = 'login@example.com';
   draft.events = [concert, { ...concert, id: 'e2', title: 'Ensaio privado', visibility: 'private' }, { ...concert, id: 'e3', title: 'Evento legado', visibility: undefined }];
-  const doc = fragment(renderPortfolio(draft, true));
+  const doc = fragment(renderPortfolio(draft, true, false, '2030-06-15'));
   assert.match(doc.textContent, /Prévia privada/);
   assert.equal(doc.querySelector('a[href="/publicacao"]')?.textContent, 'Revisar publicação');
   assert.equal(doc.querySelector('#portfolio-sobre h1')?.textContent, 'Nome artístico');
@@ -72,6 +72,7 @@ test('portfólio mostra Instagram normalizado, contato escolhido e trabalhos', (
   }
   assert.equal(doc.querySelector('a[href*="instagram"]').getAttribute('href'), 'https://www.instagram.com/davi/');
   assert.equal(doc.querySelector('a[href^="mailto:"]').getAttribute('href'), 'mailto:publico@example.com');
+  assert.equal(doc.querySelector('[href^="mailto:"]').textContent, 'Entrar em contato');
   assert.match(doc.textContent, /Gravação/);
 });
 
@@ -129,4 +130,29 @@ test('explorar mantém demonstração identificada e diferencia lista vazia', ()
   const filters = fragment(renderExplore());
   assert.equal(filters.querySelector('[name="q"]').placeholder, 'Quem você quer ouvir?');
   assert.equal(filters.querySelector('option[value=""]').textContent, 'Todos os instrumentos');
+});
+
+test('prévia e portfólio exibem apenas eventos públicos de hoje em diante, em ordem', () => {
+  const draft = newDraft('Davi');
+  draft.events = [
+    { ...concert, title: 'Amanhã', date: '2030-06-16' },
+    { ...concert, title: 'Hoje à noite', time: '20:00' },
+    { ...concert, title: 'Ontem', date: '2030-06-14' },
+    { ...concert, title: 'Ensaio futuro', date: '2030-06-17', visibility: 'private' },
+    { ...concert, title: 'Hoje cedo', time: '08:00', description: 'Programa da manhã', ticket: 'https://example.org/bilhetes' },
+  ];
+  for (const preview of [true, false]) {
+    const doc = fragment(renderPortfolio(draft, preview, false, '2030-06-15'));
+    const agenda = doc.getElementById('portfolio-agenda');
+    assert.equal(agenda.querySelector('h2').textContent, 'Próximos palcos');
+    assert.deepEqual([...agenda.querySelectorAll('.event-info h3')].map(h => h.textContent),
+      ['Hoje cedo', 'Hoje à noite', 'Amanhã']);
+    assert.doesNotMatch(agenda.textContent, /Ontem|Ensaio futuro/);
+    assert.match(agenda.querySelector('dialog').textContent, /Programa da manhã/);
+    assert.equal(agenda.querySelector('dialog a').href, 'https://example.org/bilhetes');
+    assert.match(doc.textContent, /A música é o meu ponto de encontro/);
+    assert.match(doc.textContent, /Novos registros musicais em breve/);
+    assert.match(doc.textContent, /Apresentações, projetos e boas ideias começam com um encontro/);
+    assert.match(doc.textContent, /Contato em breve/);
+  }
 });

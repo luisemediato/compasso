@@ -38,13 +38,16 @@ export async function profile(page, name) {
   await expect(page.getByRole('status')).toHaveText('Perfil salvo.');
 }
 
-export async function event(page, title = 'Concerto de teste', visibility = 'private') {
+export async function event(page, title = 'Concerto de teste', visibility = 'private', options = {}) {
+  const { date = '2030-06-15', time = '19:30', description, ticket } = options;
   await page.getByRole('link', { name: 'Agenda', exact: true }).click();
   await page.getByRole('button', { name: 'Nova apresentação', exact: true }).click();
   await page.getByLabel('Título', { exact: true }).fill(title);
-  await page.getByLabel('Data', { exact: true }).fill('2030-06-15');
-  await page.getByLabel('Horário').fill('19:30');
+  await page.getByLabel('Data', { exact: true }).fill(date);
+  await page.getByLabel('Horário').fill(time);
   await page.getByLabel('Local', { exact: true }).fill('Sala de recital');
+  if (description) await page.getByLabel('Descrição').fill(description);
+  if (ticket) await page.getByLabel('Link do ingresso').fill(ticket);
   await page.getByLabel('Visibilidade').selectOption(visibility);
   await page.getByRole('button', { name: 'Salvar apresentação' }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();

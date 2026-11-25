@@ -225,6 +225,11 @@ main > .empty-state { margin: 2rem auto; width: min(90%, 64rem); }
 .contact-card, .preview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; color: white; background: #263f32; }
 .contact-card { padding: clamp(1.5rem, 3vw, 2.5rem); border-radius: .75rem; }
 .preview-bar { padding: .9rem 5%; }
+.contact-card h2 + p { margin-top: .65rem; color: #d6e3d4; }
+.portfolio .event-row { padding-block: 1.25rem; }
+.portfolio dialog > p { margin-block: .7rem; }
+.portfolio dialog form { margin: 1.25rem 0 0; justify-content: end; }
+#app:has(main[data-view="preview"]) .portfolio-explore { display: none; }
 .contact-card a, .preview-bar a { color: inherit; }
 .contact-card .eyebrow { margin-bottom: .5rem; color: #d6e3d4; }
 .btn.peach { background: #eed0b7; color: #2e4037; }

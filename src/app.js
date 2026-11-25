@@ -1,3 +1,4 @@
+import { localDate } from './domain/formatting.js';
 import { routeFromPath } from './domain/routes.js';
 import { renderHome } from './pages/home.js';
 import { emptyState } from './ui/components.js';
@@ -134,9 +135,15 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     }
   }
 
-  function today() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function scrollToSection(hash, smooth = false) {
+    if (!hash.startsWith('#portfolio-')) return false;
+    const section = window.document.getElementById(hash.slice(1));
+    if (!section) return false;
+    section.tabIndex = -1;
+    section.focus({ preventScroll: true });
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView?.({ behavior: smooth && !reduce ? 'smooth' : 'instant' });
+    return true;
   }
 
   async function renderCurrentPage() {
@@ -179,7 +186,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         await go('/painel');
       });
     } else if (route === 'dashboard') {
-      const date = today();
+      const date = localDate();
       main.innerHTML = renderDashboard(state, date);
       bindCalendar(main.querySelector('[data-calendar]'), date, state.events);
       main.querySelector('[data-import]').addEventListener('click', () => run(async () => {
@@ -204,17 +211,17 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       });
     } else if (route === 'works' || route === 'agenda') {
       const isAgenda = route === 'agenda';
-      main.innerHTML = isAgenda ? renderAgenda(state.events, today()) : renderWorksPage(state.works);
+      main.innerHTML = isAgenda ? renderAgenda(state.events, localDate()) : renderWorksPage(state.works);
       const collection = isAgenda ? 'events' : 'works';
       bindCollection({ main, window, collection, getItems: () => state[collection],
         validate: isAgenda ? validateEvent : validateWork,
         bindForm, save: saveDraft, refresh: renderCurrentPage, run });
       if (isAgenda) {
-        bindCalendar(main.querySelector('[data-calendar]'), today(), state.events, main.querySelector('[name="date"]'));
+        bindCalendar(main.querySelector('[data-calendar]'), localDate(), state.events, main.querySelector('[name="date"]'));
         const filters = main.querySelector('[data-agenda-filter]');
         filters.addEventListener('input', () => {
           const period = filters.querySelector('[name="period"]:checked').value;
-          const date = today();
+          const date = localDate();
           let events = filterEvents(state.events, filters.querySelector('[name="filter"]').value);
           if (period === 'upcoming') events = events.filter(event => event.date >= date);
           if (period === 'past') events = events.filter(event => event.date < date);
@@ -227,8 +234,10 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         window.history.replaceState(null, '', url);
         main.querySelector('[data-new]').click();
       }
-    } else if (route === 'preview') main.innerHTML = renderPortfolio(state, true);
-    else if (route === 'publication') {
+    } else if (route === 'preview') {
+      main.innerHTML = renderPortfolio(state, true);
+      scrollToSection(window.location.hash);
+    } else if (route === 'publication') {
       main.innerHTML = renderPublication(state);
       for (const action of ['publish', 'unpublish']) {
         main.querySelector(`[data-${action}]`)?.addEventListener('click', event => {
@@ -274,9 +283,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         const artist = artists.find(item => item.slug === route.slice(7));
         main.innerHTML = artist ? renderPortfolio(artist) : emptyState('Portfólio não encontrado.');
         app.classList.toggle('portfolio-page', Boolean(artist));
-        if (artist && window.location.hash.startsWith('#portfolio-')) {
-          window.document.getElementById(window.location.hash.slice(1))?.scrollIntoView();
-        }
+        if (artist) scrollToSection(window.location.hash);
       } catch (error) {
         if (version === pageVersion) main.innerHTML = emptyState(error.message);
       }
@@ -294,10 +301,22 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
 
   app.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const details = event.target.closest?.('[data-event-details]');
+    if (details) {
+      details.nextElementSibling.showModal();
+      return;
+    }
     const link = event.target.closest?.('a[href]');
     if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
     const url = new URL(link.href);
-    if (url.origin !== window.location.origin || url.hash) return;
+    if (url.origin !== window.location.origin) return;
+    if (url.hash) {
+      if (url.pathname === window.location.pathname && url.search === window.location.search && scrollToSection(url.hash, true)) {
+        event.preventDefault();
+        if (window.location.hash) window.history.replaceState(null, '', url.pathname + url.search);
+      }
+      return;
+    }
     event.preventDefault();
     if (url.href !== window.location.href) window.history.pushState(null, '', url.href);
     run(renderCurrentPage);
