@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { test, expect, register, profile, event, publish } from './fixtures.js';
 
 test('20 · cadastra, ajusta slug, sai e entra novamente', async ({ page, identity }) => {
@@ -200,4 +201,28 @@ test('38 · contato confirma recebimento somente após resposta de gravação', 
   await page.getByRole('button', { name: 'Enviar mensagem' }).click();
   expect((await response).status()).toBe(201);
   await expect(page.getByRole('status')).toHaveText('Mensagem recebida pela equipe.');
+});
+
+test('exporta o JSON antes e depois da publicação sem alterar o rascunho', async ({ page, artist }) => {
+  await profile(page, artist.name);
+  await event(page, 'Ensaio reservado');
+  await page.getByRole('link', { name: 'Publicação', exact: true }).click();
+  async function downloadPortfolio() {
+    const ready = page.waitForEvent('download');
+    await page.getByRole('link', { name: 'Exportar meus dados' }).click();
+    const file = await ready;
+    expect(file.suggestedFilename()).toBe('compasso-dados.json');
+    return JSON.parse(await readFile(await file.path(), 'utf8'));
+  }
+  const before = await downloadPortfolio();
+  expect(before.slug).toBe(artist.slug);
+  expect(before.profile.name).toBe(artist.name);
+  expect(before.events.map(item => item.title)).toEqual(['Ensaio reservado']);
+  expect(before.publication).toBeNull();
+  await publish(page);
+  const after = await downloadPortfolio();
+  expect(after.events).toEqual(before.events);
+  expect(after.publication.events).toEqual([]);
+  expect(after.publication.profile).toEqual(before.profile);
+  await expect(page.getByText('Sem alterações pendentes.')).toBeVisible();
 });

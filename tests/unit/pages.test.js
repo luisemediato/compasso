@@ -118,6 +118,9 @@ test('publicação inicial não oferece retirada nem endereço público', () => 
   assert.equal(doc.querySelector('[data-unpublish]'), null);
   assert.equal(doc.querySelector('a[href="/davi"]'), null);
   assert.equal(doc.querySelector('[data-publish]').textContent, 'Publicar');
+  const download = doc.querySelector('a[download="compasso-dados.json"]');
+  assert.equal(download?.textContent, 'Exportar meus dados');
+  assert.equal(download.getAttribute('href'), '/api/export');
 });
 
 test('explorar mantém demonstração identificada e diferencia lista vazia', () => {
