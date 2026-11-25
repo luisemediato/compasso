@@ -7,5 +7,6 @@ export function renderContact() {
       ${field('email', 'E-mail', '', { type: 'email', required: true, max: 254 })}
       ${field('message', 'Mensagem', '', { type: 'textarea', required: true, max: 2000 })}
       ${formActions('Enviar mensagem')}
-    </form></section>`;
+    </form>
+    <a href="/" data-contact-home hidden>Voltar ao início</a></section>`;
 }

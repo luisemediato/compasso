@@ -43,13 +43,13 @@ Execute os comandos na raiz do repositório. As suítes abaixo rodam no terminal
 | `npm test` | Testes unitários. |
 | `npm run test:integration` | Testes de integração. |
 | `npm run test:coverage` | As duas suítes com medição de cobertura. Gera `coverage/lcov.info`. |
-| `npm run test:e2e -- --workers=1` | Os 11 fluxos de navegador em sequência. |
-| `npm run test:e2e:parallel` | Os mesmos 11 fluxos com quatro workers. |
+| `npm run test:e2e -- --workers=1` | Os 12 fluxos de navegador em sequência. |
+| `npm run test:e2e:parallel` | Os mesmos 12 fluxos com quatro workers. |
 | `npm run test:smoke -- https://URL-PUBLICA` | Verificação de leitura da aplicação publicada, sem criar contas ou mensagens. |
 
 O GitHub Actions executa as verificações em Linux, Windows e macOS. A cobertura considera os arquivos JavaScript de `src/` e `server/`. No terminal, a coluna `% Lines` indica a porcentagem de linhas executadas pelos testes. Para consultar os resultados de uma versão, abra a [execução no GitHub Actions](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) e o [relatório no Codecov](https://app.codecov.io/gh/luisemediato/compasso) referentes ao mesmo commit.
 
-Antes do primeiro E2E, execute `npx playwright install chromium` (no Linux, use `npx playwright install --with-deps chromium`). O Playwright faz o build, inicia o servidor na porta **4183** e cria um SQLite **em memória**, separado de `.local/compasso.sqlite`. Deixe essa porta livre. Cada teste usa uma identidade própria; os testes de publicação abrem um segundo contexto sem sessão. Os 11 cenários seguem a lista do roteiro: cadastro/login, perfil, criar/editar/excluir apresentação, trabalho na prévia, caminhos da home, edição privada após publicar, retirada, acesso direto com republicação e contato.
+Antes do primeiro E2E, execute `npx playwright install chromium` (no Linux, use `npx playwright install --with-deps chromium`). O Playwright faz o build, inicia o servidor na porta **4183** e cria um SQLite **em memória**, separado de `.local/compasso.sqlite`. Deixe essa porta livre. Cada teste usa uma identidade própria; os testes de publicação abrem um segundo contexto sem sessão. Os 12 cenários cobrem cadastro/login, perfil, criar/editar/excluir apresentação, trabalho na prévia, caminhos da home, edição privada após publicar, retirada, acesso direto com republicação, contato e exportação do portfólio.
 
 O relatório fica em `playwright-report/index.html`; use `npx playwright show-report` para abri-lo. Em falhas há screenshot e trace em `test-results/`. O Actions executa os E2E em paralelo, com dois workers em cada sistema, e guarda os artifacts `playwright-ubuntu-latest`, `playwright-windows-latest` e `playwright-macos-latest`, inclusive quando um teste falha. O job `deploy` depende da aprovação de toda a matriz `unit`.
 
@@ -57,7 +57,7 @@ O relatório fica em `playwright-report/index.html`; use `npx playwright show-re
 
 Na home, **Descobrir músicos** abre a busca e **Organizar meu espaço** leva ao cadastro ou ao painel de quem já entrou. A vitrine apresenta até três portfólios publicados. A demonstração fica em **Explorar músicos**. Após entrar, o painel oferece perfil, trabalhos, agenda, prévia e publicação. O e-mail de login e o nome completo não entram no portfólio. O contato público é opcional. O Instagram aceita usuário, `@usuario` ou link e pode ser apagado.
 
-Salvar altera o rascunho. **Publicar/Republicar** atualiza a cópia visível pelo endereço `/<slug>`; **Retirar publicação** remove essa cópia e conserva o rascunho. Eventos novos são privados por padrão; eventos antigos sem visibilidade também continuam privados. Só eventos marcados como públicos entram na publicação.
+Salvar altera o rascunho. **Publicar/Republicar** atualiza a cópia visível pelo endereço `/<slug>`; **Retirar publicação** remove essa cópia e conserva o rascunho. Eventos novos são privados por padrão; eventos antigos sem visibilidade também continuam privados. Só eventos marcados como públicos entram na publicação. A agenda do portfólio mostra os públicos de hoje em diante. Na página Publicação, o músico confere o endereço antes de confirmar e pode exportar seu rascunho e a versão publicada em JSON.
 
 Se outra aba salvar primeiro, a tela preserva os campos e oferece **Recarregar rascunho**, com confirmação de descarte. O painel também permite importar um rascunho legado deste navegador após confirmação; isso não altera a publicação existente. O rodapé abre **Fale com a equipe** e só confirma recebimento depois da resposta de gravação do servidor.
 
@@ -75,7 +75,7 @@ Para repetir a verificação, execute `npm run test:smoke -- https://compasso.co
 
 ### Evidências e vídeo
 
-A suíte atual contém **85 unitários**, **92 integrações** e **11 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
+A suíte atual contém **88 unitários**, **99 integrações** e **12 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
 
 O [roteiro do vídeo](docs/roteiro-video.md) organiza uma apresentação de até 5 minutos com sistema, tecnologias, uso de IA e testes. A dupla ainda precisa gravar, publicar o vídeo no YouTube e enviar os cinco links no Moodle. O histórico pode ser conferido com `git rev-list --count --no-merges origin/main` após `git fetch origin`.
 

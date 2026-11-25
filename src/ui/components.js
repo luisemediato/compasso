@@ -21,9 +21,9 @@ export function emptyState(message) {
   return `<p class="empty-state">${escapeHtml(message)}</p>`;
 }
 
-export function pageHeading(eyebrow, title, action) {
+export function pageHeading(eyebrow, title, action, description = '') {
   return `<div class="page-heading"><div><p class="eyebrow">${escapeHtml(eyebrow)}</p>
-    <h1>${escapeHtml(title)}</h1></div>${action}</div>`;
+    <h1>${escapeHtml(title)}</h1>${description ? `<p class="page-description">${escapeHtml(description)}</p>` : ''}</div>${action}</div>`;
 }
 
 export function itemActions(item) {

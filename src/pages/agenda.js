@@ -1,4 +1,4 @@
-import { collectionDialog, field, newItemButton } from '../ui/forms.js';
+import { categorySelect, collectionDialog, field, newItemButton } from '../ui/forms.js';
 import { pageHeading } from '../ui/components.js';
 import { renderEvents } from '../ui/events.js';
 import { renderCalendar } from '../ui/calendar.js';
@@ -20,7 +20,7 @@ export function renderAgenda(events, today) {
       ${field('title', 'Título', '', { required: true })}
       ${field('date', 'Data', today, { type: 'date', required: true })}
       ${field('time', 'Horário', '', { type: 'time', required: true })}
-      ${field('venue', 'Local', '', { required: true })}${field('city', 'Cidade')}${field('type', 'Tipo')}
+      ${field('venue', 'Local', '', { required: true })}${field('city', 'Cidade')}${categorySelect('Tipo', ['Recital', 'Concerto', 'Música de câmara', 'Festival', 'Outro'])}
       ${field('ticket', 'Link do ingresso (opcional)', '', { type: 'url' })}
       <label>Visibilidade<select name="visibility"><option value="private">Privada</option><option value="public">Pública</option></select></label>
       ${field('description', 'Descrição', '', { type: 'textarea' })}

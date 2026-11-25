@@ -293,6 +293,10 @@ ul.field-help { margin: 0; padding-left: 1.25rem; }
   text-decoration: none;
   font-size: .9rem;
 }
+.side-nav .nav-count { margin-left: auto; min-width: 1.5rem; border-radius: 1rem; text-align: center; background: #40594d; color: white; font-size: .8rem; }
+.page-description, .calendar-legend { margin-top: .5rem; color: var(--muted); font-size: .875rem; }
+.calendar-legend { display: flex; align-items: center; gap: .4rem; }
+.calendar-legend::before { content: ""; width: .35rem; height: .35rem; border-radius: 50%; background: currentColor; }
 .side-nav .icon { width: 1.2rem; height: 1.2rem; }
 .side-nav a:hover, .side-nav [aria-current="page"] { color: #fff0e4; background: #334b43; }
 .side-nav [aria-current="page"] .icon, .side-explore { color: var(--peach); }

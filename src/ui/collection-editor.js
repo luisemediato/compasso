@@ -16,6 +16,17 @@ export function bindCollection({ main, window, getItems, collection, validate, b
       field.removeAttribute('aria-invalid');
       field.removeAttribute('aria-describedby');
     }
+    const type = form.elements.namedItem('type');
+    type.querySelector('[data-saved-type]')?.remove();
+    if (record) {
+      const savedType = record.type ?? '';
+      if (![...type.options].some(option => option.value === savedType)) {
+        const option = new window.Option(savedType || 'Sem classificação', savedType);
+        option.dataset.savedType = '';
+        type.add(option);
+      }
+      type.value = savedType;
+    }
     for (const [name, value] of Object.entries(record ?? {})) {
       const field = form.elements.namedItem(name);
       if (field) field.value = value;

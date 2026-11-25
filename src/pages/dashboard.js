@@ -14,7 +14,9 @@ export function renderDashboard(state, today) {
     ['Seu perfil', progress + '%', 'user'],
   ];
   const action = `<a class="btn" href="/agenda?novo=1">Nova apresentação ${icon('calendar')}</a>`;
-  return pageHeading('Seu espaço criativo', 'Painel de ' + state.profile.name, action) + `
+  const firstName = state.profile.name.trim().split(/\s+/)[0];
+  return pageHeading('Seu espaço criativo', 'Olá, ' + firstName, action,
+    'Confira suas próximas apresentações e o progresso do portfólio.') + `
     <section class="dashboard-hero">
       <div><p class="eyebrow">Seu talento, em um só lugar</p><h2>O palco é seu.<br>A gente organiza o resto.</h2>
       <p>Compartilhe sua trajetória, seus trabalhos e os próximos encontros com a sua música.</p>

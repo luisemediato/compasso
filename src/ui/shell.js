@@ -1,4 +1,5 @@
-import { escapeHtml, initials } from '../domain/formatting.js';
+import { escapeHtml, initials, localDate } from '../domain/formatting.js';
+import { upcoming } from '../domain/collections.js';
 import { pathFromRoute } from '../domain/routes.js';
 import { hasUnpublishedChanges } from '../domain/publication.js';
 import { icon } from './components.js';
@@ -19,10 +20,22 @@ function brand() {
   </a>`;
 }
 
-function sidebar(profile, route) {
+const publicTitles = {
+  explore: 'Explorar músicos', login: 'Entrar', register: 'Criar conta', contact: 'Contato',
+};
+
+export function pageTitle(route) {
+  if (route === 'home') return 'Compasso';
+  const label = workspacePages[route]?.[0] ?? publicTitles[route];
+  return (label || (route?.startsWith('artist/') ? 'Portfólio' : 'Página indisponível')) + ' | Compasso';
+}
+
+function sidebar(state, route) {
+  const profile = state.profile;
+  const count = upcoming(state.events, localDate()).length;
   const links = Object.entries(workspacePages).map(([page, [label, symbol]]) => `
-    <a href="${pathFromRoute(page)}" aria-label="${label}" title="${label}" ${page === route ? 'aria-current="page"' : ''}>
-      ${icon(symbol)}<span>${label}</span>
+    <a href="${pathFromRoute(page)}" aria-label="${label}" title="${label}" ${page === 'agenda' ? `aria-description="Apresentações de hoje em diante: ${count}"` : ''} ${page === route ? 'aria-current="page"' : ''}>
+      ${icon(symbol)}<span>${label}</span>${page === 'agenda' ? `<span class="nav-count" aria-hidden="true">${count}</span>` : ''}
     </a>`).join('');
   return `${brand()}<p class="sidebar-label">Meu espaço</p>
     <nav class="side-nav" aria-label="Área do músico">${links}</nav>
@@ -67,7 +80,7 @@ export function updateShell(app, state, route) {
   app.classList.toggle('is-workspace', workspace);
   const side = app.querySelector('[data-private]');
   side.hidden = !workspace;
-  side.innerHTML = workspace ? sidebar(state.profile, route) : '';
+  side.innerHTML = workspace ? sidebar(state, route) : '';
   app.querySelector('[data-current-page]').textContent = workspace ? workspacePages[route][0] : '';
   let status = '';
   if (workspace) {

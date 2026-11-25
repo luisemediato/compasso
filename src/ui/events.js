@@ -19,8 +19,9 @@ function eventDetails(event, ticket) {
     </dialog></div>`;
 }
 
-export function renderEvents(events, editable = false, { publicFrom } = {}) {
+export function renderEvents(events, editable = false, { publicFrom, newestFirst = false } = {}) {
   const listed = publicFrom ? upcoming(events.filter(isPublicEvent), publicFrom) : sortedEvents(events);
+  if (newestFirst) listed.reverse();
   if (!listed.length) return emptyState('Nenhuma apresentação encontrada.');
   return `<ul class="event-list">${listed.map(event => {
     const [year, month, day] = String(event.date ?? '').split('-');

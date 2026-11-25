@@ -25,7 +25,9 @@ export function renderCalendar(year, month, selected = '', { events = [], select
           ? `<button type="button" data-day="${date}" aria-label="Selecionar ${label}" aria-pressed="${date === selected}"${mark}>${day}</button>`
           : `<time datetime="${date}" ${date === selected ? 'aria-current="date"' : ''}${mark}>${day}${hasEvent ? '<span class="sr-only">, com apresentação</span>' : ''}</time>`;
       }).join('')}
-    </div></div>`;
+    </div>
+    <p class="calendar-legend">Dia com apresentação</p>
+  </div>`;
 }
 
 export function bindCalendar(container, today, events, dateInput) {

@@ -10,6 +10,11 @@ export function field(name, label, value = '', { type = 'text', required = false
   return `<label>${label}${input}</label>`;
 }
 
+export function categorySelect(label, choices) {
+  const options = choices.map(choice => `<option>${escapeHtml(choice)}</option>`).join('');
+  return `<label>${escapeHtml(label)}<select name="type">${options}</select></label>`;
+}
+
 export function formActions(label = 'Salvar') {
   return `<p data-error role="alert" tabindex="-1"></p><button type="submit">${label}</button>`;
 }

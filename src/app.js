@@ -2,7 +2,7 @@ import { localDate } from './domain/formatting.js';
 import { routeFromPath } from './domain/routes.js';
 import { renderHome } from './pages/home.js';
 import { emptyState } from './ui/components.js';
-import { renderShell, updateShell } from './ui/shell.js';
+import { pageTitle, renderShell, updateShell } from './ui/shell.js';
 import { renderLogin, renderRegister } from './pages/account.js';
 import { bindSlugSuggestion } from './ui/forms.js';
 import { createApi } from './data/api.js';
@@ -166,6 +166,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     }
     renderedPath = window.location.pathname;
     main.dataset.view = route;
+    window.document.title = pageTitle(route);
     app.classList.toggle('portfolio-page', route === 'preview');
     if (route === 'home') {
       main.innerHTML = renderHome(Boolean(state));
@@ -233,7 +234,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
           let events = filterEvents(state.events, filters.querySelector('[name="filter"]').value);
           if (period === 'upcoming') events = events.filter(event => event.date >= date);
           if (period === 'past') events = events.filter(event => event.date < date);
-          main.querySelector('[data-list]').innerHTML = renderEvents(events, true);
+          main.querySelector('[data-list]').innerHTML = renderEvents(events, true, { newestFirst: period === 'past' });
         });
       }
       const url = new URL(window.location.href);
@@ -276,12 +277,15 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       });
     } else if (route === 'contact') {
       main.innerHTML = renderContact();
+      const home = main.querySelector('[data-contact-home]');
       bindForm(async (data, current) => {
+        home.hidden = true;
         await api('/api/contact', data);
         if (current()) {
           main.querySelector('form').reset();
           main.querySelector('[data-error]').textContent = '';
           notice.textContent = 'Mensagem recebida pela equipe.';
+          home.hidden = false;
         }
       });
     } else if (route === 'explore') {
@@ -302,6 +306,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         const artist = artists.find(item => item.slug === route.slice(7));
         main.innerHTML = artist ? renderPortfolio(artist) : emptyState('Portfólio não encontrado.');
         app.classList.toggle('portfolio-page', Boolean(artist));
+        window.document.title = (artist ? artist.profile.name : 'Portfólio não encontrado') + ' | Compasso';
         if (artist) scrollToSection(window.location.hash);
       } catch (error) {
         if (version === pageVersion) main.innerHTML = emptyState(error.message);
