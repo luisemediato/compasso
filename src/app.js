@@ -18,7 +18,7 @@ import { filterEvents } from './domain/collections.js';
 import { renderPortfolio } from './pages/portfolio.js';
 import { renderPublication } from './pages/publication.js';
 import { renderContact } from './pages/contact.js';
-import { renderArtistList, renderExplore } from './pages/explore.js';
+import { bindArtistSearch, renderArtistList, renderExplore } from './pages/explore.js';
 import { seed } from './data/seed.js';
 import { createRepository } from './data/repository.js';
 
@@ -258,7 +258,6 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       });
     } else if (route === 'explore') {
       main.innerHTML = renderExplore();
-      let searchVersion = 0;
       main.querySelector('[data-demo]').addEventListener('click', ({ currentTarget: button }) => {
         const demo = main.querySelector('[data-demo-content]');
         if (!demo.hasChildNodes()) demo.innerHTML = renderPortfolio(seed, false, true);
@@ -266,21 +265,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         button.setAttribute('aria-expanded', String(!demo.hidden));
         button.textContent = demo.hidden ? 'Ver perfil de demonstração' : 'Ocultar demonstração';
       });
-      const search = async (query = {}) => {
-        const requestVersion = ++searchVersion;
-        const artists = await api('/api/artists?' + new URLSearchParams(query));
-        if (version !== pageVersion) return;
-        if (requestVersion === 1) {
-          const instruments = artists.map(artist => artist.profile.instrument).filter(Boolean);
-          const options = [...new Set(instruments)].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-          main.querySelector('datalist').replaceChildren(...options.map(value => new window.Option(value, value)));
-        }
-        if (requestVersion === searchVersion) main.querySelector('[data-results]').innerHTML = renderArtistList(artists);
-      };
-      bindForm(search);
-      try { await search(); } catch (error) {
-        if (version === pageVersion) main.querySelector('[data-results]').textContent = error.message;
-      }
+      await bindArtistSearch(main, { api, window, run });
     } else if (route?.startsWith('artist/')) {
       main.innerHTML = emptyState('Carregando portfólio…');
       try {

@@ -124,5 +124,9 @@ test('explorar mantém demonstração identificada e diferencia lista vazia', ()
   assert.match(fragment(renderArtistList([])).textContent, /Nenhum músico/);
   const doc = fragment(renderArtistList([{ slug: 'davi', profile: { name: 'Davi', instrument: 'Viola', city: 'BH' } }]));
   assert.equal(doc.querySelector('a').getAttribute('href'), '/davi');
-  assert.match(doc.textContent, /Viola · BH/);
+  assert.equal(doc.querySelector('.artist-body .eyebrow').textContent, 'Viola');
+  assert.match(doc.textContent, /BH/);
+  const filters = fragment(renderExplore());
+  assert.equal(filters.querySelector('[name="q"]').placeholder, 'Quem você quer ouvir?');
+  assert.equal(filters.querySelector('option[value=""]').textContent, 'Todos os instrumentos');
 });

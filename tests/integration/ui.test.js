@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { startApp } from '../../src/app.js';
 import { newDraft } from '../../src/domain/account.js';
+import { searchArtists } from '../../src/domain/publication.js';
 
 function account(name = 'Davi', id = 'a') {
   return { id, slug: id + '-musico', revision: 0, ...newDraft(name), publication: null };
@@ -294,31 +295,46 @@ test('perfil inválido preserva campos sem enviar para API', async t => {
   assert.equal(ctx.document.querySelector('[name="bio"]').value, 'Minha história');
 });
 
-test('explorar filtra via API, abre músico e mostra catálogo de demonstração separado', async t => {
-  const published = { ...account(), slug: 'davi-publico' };
-  published.profile.instrument = 'Viola';
-  const paths = [];
+test('explorar combina texto e instrumento em tempo real e restaura o catálogo', async t => {
+  const davi = account('Davi', 'davi');
+  Object.assign(davi.profile, { instrument: 'Viola', city: 'São Paulo' });
+  const bia = account('Bia', 'bia');
+  Object.assign(bia.profile, { instrument: 'Piano', city: 'Belo Horizonte' });
+  const catalog = [davi, bia];
   const ctx = open(t, '/explorar', async path => {
-    paths.push(path);
     if (path === '/api/session') return null;
-    return path.includes('q=ausente') ? [] : [published];
+    const query = new URL(path, 'https://compasso.test').searchParams;
+    return searchArtists(catalog, query.get('q'), query.get('instrument'));
   });
   await ctx.app.ready;
-  const instrument = ctx.document.querySelector('[name="instrument"]');
-  assert.deepEqual([...instrument.list.options].map(option => option.value), ['Viola']);
+  const instrument = ctx.document.querySelector('select[name="instrument"]');
+  assert.ok(instrument, 'o instrumento deve ser um seletor');
+  assert.deepEqual([...instrument.options].map(option => option.value), ['', 'Piano', 'Viola']);
+  const names = () => [...ctx.document.querySelectorAll('[data-results] h3')].map(node => node.textContent);
+  function choose(value) {
+    instrument.value = value;
+    instrument.dispatchEvent(new ctx.window.Event('change', { bubbles: true }));
+    return ctx.app.idle();
+  }
+  fill(ctx.window, { q: 'davi' });
+  await ctx.app.idle();
+  assert.deepEqual(names(), ['Davi']);
+  await choose('Piano');
+  assert.match(ctx.document.querySelector('[data-results]').textContent, /Nenhum músico/);
+  fill(ctx.window, { q: '' });
+  await ctx.app.idle();
+  assert.deepEqual(names(), ['Bia']);
+  await choose('');
+  assert.deepEqual(names(), ['Davi', 'Bia']);
+  fill(ctx.window, { q: 'sao paulo' });
+  await ctx.app.idle();
+  assert.deepEqual(names(), ['Davi']);
   ctx.document.querySelector('[data-demo]').click();
   assert.match(ctx.document.querySelector('[data-demo-content]').textContent, /Luís Henrique/);
-  fill(ctx.window, { q: 'ausente', instrument: 'Viola' });
-  await submit(ctx);
-  assert.ok(paths.includes('/api/artists?q=ausente&instrument=Viola'));
-  assert.match(ctx.document.querySelector('[data-results]').textContent, /Nenhum músico/);
-  fill(ctx.window, { q: '', instrument: '' });
-  await submit(ctx);
   ctx.document.querySelector('[data-results] a').click();
   await ctx.app.idle();
-  assert.equal(ctx.window.location.pathname, '/davi-publico');
-  assert.equal(ctx.document.querySelector('main h1')?.textContent, 'Davi');
-  assert.equal(ctx.document.querySelector('[data-private]').hidden, true);
+  assert.equal(ctx.window.location.pathname, '/davi-musico');
+  assert.equal(ctx.document.querySelector('main h1').textContent, 'Davi');
 });
 
 test('resposta de catálogo atrasada não substitui a página de contato', async t => {
@@ -398,10 +414,15 @@ test('busca mais recente prevalece sobre o catálogo inicial atrasado', async t 
   ctx.document.querySelector('a[href="/explorar"]').click();
   const initial = ctx.app.idle();
   fill(ctx.window, { q: 'ausente' });
-  await submit(ctx);
-  finishInitial([account()]);
+  const latest = ctx.app.idle();
+  assert.notEqual(latest, initial, 'digitar deve iniciar outra busca');
+  await latest;
+  const late = account('Bia');
+  late.profile.instrument = 'Piano';
+  finishInitial([late]);
   await initial;
   assert.match(ctx.document.querySelector('[data-results]').textContent, /Nenhum músico/);
+  assert.equal(ctx.document.querySelector('select option:last-child')?.value, 'Piano');
 });
 
 for (const [route, collection, fields] of [
@@ -601,4 +622,23 @@ test('excluir um trabalho conserva a edição de outro iniciada durante a grava�
   await ctx.app.idle();
   assert.equal(ctx.document.querySelector('[data-edit="a"]'), null);
   assert.ok(ctx.document.querySelector('[data-edit="b"]'));
+});
+
+test('um erro de busca atrasado não apaga os resultados mais recentes', async t => {
+  const delayed = Promise.withResolvers();
+  const ctx = open(t, '/explorar', async path => {
+    if (path === '/api/session') return null;
+    if (path.includes('q=antiga')) return delayed.promise;
+    return [account('Bia')];
+  });
+  await ctx.app.ready;
+  fill(ctx.window, { q: 'antiga' });
+  const old = ctx.app.idle();
+  assert.notEqual(old, ctx.app.ready, 'a primeira busca deve ter começado');
+  fill(ctx.window, { q: 'Bia' });
+  await ctx.app.idle();
+  delayed.reject(new Error('A busca anterior falhou'));
+  await old;
+  assert.equal(ctx.document.querySelector('[data-results] h3').textContent, 'Bia');
+  assert.doesNotMatch(ctx.document.body.textContent, /A busca anterior falhou/);
 });

@@ -86,9 +86,9 @@ test('36/44 · home separa público e músico, teclado e tela estreita', async (
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Encontre sua próxima escuta.', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Catálogo de demonstração' })).toBeVisible();
-  await page.getByLabel('Nome, cidade ou instrumento').fill('sem-resultado-' + Date.now());
+  await page.getByLabel('Nome, instrumento ou cidade').fill('sem-resultado-' + Date.now());
   await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Filtrar por instrumento')).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Instrumento', exact: true })).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.goBack();
   await expect(page.getByRole('heading', { name: /Seu talento merece/ })).toBeVisible();
@@ -116,13 +116,12 @@ test('40 · retirada remove músico da busca e do endereço direto', async ({ pa
   await profile(page, artist.name);
   await publish(page);
   await visitor.goto('http://127.0.0.1:4183/explorar');
-  await visitor.getByLabel('Nome, cidade ou instrumento').fill(artist.name);
-  await visitor.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await visitor.getByLabel('Nome, instrumento ou cidade').fill(artist.name);
   await expect(visitor.getByRole('link', { name: artist.name, exact: true })).toBeVisible();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Retirar publicação' }).click();
   await expect(page.getByText('Portfólio ainda não publicado.')).toBeVisible();
-  await visitor.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await visitor.getByRole('searchbox').press('Enter');
   await expect(visitor.getByText('Nenhum músico encontrado.')).toBeVisible();
   expect((await visitor.goto('http://127.0.0.1:4183/' + artist.slug)).status()).toBe(404);
   await expect(visitor.getByText('Portfólio não encontrado.')).toBeVisible();
