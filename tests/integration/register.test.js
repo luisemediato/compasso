@@ -84,3 +84,14 @@ test('recusa e-mail ou slug duplicado sem criar outro artista ou sessão', async
   assert.equal(artistas.total, 1);
   assert.equal(sessoes.total, 1);
 });
+
+test('API aplica os limites de senha e exige símbolo nos novos cadastros', async t => {
+  const db = openDatabase(':memory:');
+  t.after(() => db.close());
+  const cases = [['a'.repeat(7) + '!', 400], ['a'.repeat(8) + '@', 201],
+    ['a'.repeat(127) + '#', 201], ['a'.repeat(128) + '!', 400], ['abcdefghi', 400]];
+  for (const [index, [password, status]] of cases.entries()) {
+    const resposta = await cadastrar(db, { ...contaValida, password, slug: 'ana-' + index, email: `ana${index}@example.test` });
+    assert.equal(resposta.status, status, 'caso ' + index);
+  }
+});

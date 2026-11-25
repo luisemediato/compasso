@@ -230,12 +230,18 @@ test('slug ocupado marca e-mail e endereço, mantendo todos os campos', async t 
   assert.equal(ctx.document.querySelector('[name="password"]').value, 'Senha123!');
 });
 
-test('cadastro com senha inválida recusa antes de enviar e marca o campo', async t => {
+test('formulário recusa as senhas fora do contrato e mantém a ajuda após o erro', async t => {
   const ctx = open(t, '/cadastro', async path => { assert.equal(path, '/api/session'); return null; });
   await ctx.app.ready;
-  fill(ctx.window, { fullName: 'Davi', artistName: 'Davi', email: 'davi@example.com', password: 'curta', slug: 'davi' });
-  await submit(ctx);
-  assert.equal(ctx.document.querySelector('[name="password"]').getAttribute('aria-invalid'), 'true');
+  fill(ctx.window, { fullName: 'Davi', artistName: 'Davi', email: 'davi@example.com', slug: 'davi' });
+  const field = ctx.document.querySelector('[name="password"]');
+  for (const password of ['abcdefg!', 'abcdefghi', 'a'.repeat(128) + '!']) {
+    fill(ctx.window, { password });
+    await submit(ctx);
+    assert.equal(field.getAttribute('aria-invalid'), 'true');
+    assert.match(field.getAttribute('aria-describedby'), /ajuda-senha/);
+    assert.match(ctx.document.querySelector('[data-error]').textContent, /9 a 128/);
+  }
 });
 
 test('visitante não abre painel; entrada recusada preserva e-mail', async t => {

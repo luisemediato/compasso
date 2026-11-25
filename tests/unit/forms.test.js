@@ -44,8 +44,27 @@ test('cadastro sugere o endereço e preserva a edição manual', (t) => {
 
   type(window, artist, 'João Silva');
   assert.equal(slug.value, 'joao-silva');
+  const preview = document.getElementById('previa-endereco');
+  assert.equal(preview?.textContent, 'http://localhost/joao-silva');
 
   type(window, slug, 'joao-viola');
   type(window, artist, 'João Silva Quarteto');
   assert.equal(slug.value, 'joao-viola');
+  assert.equal(preview.textContent, 'http://localhost/joao-viola');
+  type(window, slug, '');
+  type(window, artist, 'Ána & Bia');
+  assert.equal(slug.value, 'ana-bia');
+});
+
+test('cadastro associa a lista de regras à senha e o login aceita a senha anterior', t => {
+  const register = openPage(t, '/cadastro').document;
+  const password = register.querySelector('[name="password"]');
+  assert.equal(password.minLength, 9);
+  assert.equal(password.maxLength, 128);
+  const help = register.getElementById(password.getAttribute('aria-describedby'));
+  const rules = [...help.querySelectorAll('li')].map(item => item.textContent);
+  assert.match(rules[0], /9 a 128/);
+  assert.match(rules[1], /!.*@.*#/);
+  const login = openPage(t, '/entrar').document.querySelector('[name="password"]');
+  assert.equal(login.hasAttribute('minlength'), false);
 });

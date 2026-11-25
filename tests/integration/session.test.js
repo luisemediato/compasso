@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { hashPassword } from '../../server/auth.js';
 import { openDatabase } from '../../server/local-db.js';
 import { handleRequest } from '../../server/http.js';
 
@@ -196,4 +197,15 @@ test('reabrir o SQLite recupera o rascunho e mantém as duas contas independente
     assert.notEqual(novo, anterior);
     assert.deepEqual(await consultar(db, novo), estado);
   }
+});
+
+test('conta antiga com senha de oito caracteres continua entrando', async t => {
+  const db = abrirBanco(t);
+  await cadastrar(db);
+  const password = 'abcdefg!';
+  await db.prepare('UPDATE artists SET password_hash = ? WHERE email = ?')
+    .bind(await hashPassword(password), conta.email).run();
+  const response = await requisitar(db, 'login', { dados: { email: conta.email, password } });
+  const cookie = cookieEmitido(response, 200);
+  assert.equal((await consultar(db, cookie)).slug, conta.slug);
 });
