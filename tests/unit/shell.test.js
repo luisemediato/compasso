@@ -11,12 +11,14 @@ test('a estrutura da página contém cabeçalho, área principal e rodapé', () 
   assert.ok(document.querySelector('footer'), 'deve existir um rodapé');
 });
 
-test('o cabeçalho apresenta o título Compasso e um link para o início', () => {
+test('a marca leva ao início e o visitante pode explorar, entrar e cadastrar', () => {
   const { document } = new JSDOM(renderShell()).window;
-
-  const titulo = document.querySelector('header h1');
-  assert.equal(titulo?.textContent.trim(), 'Compasso');
-
-  const inicio = document.querySelector('header nav a[href="/"]');
-  assert.equal(inicio?.textContent.trim(), 'Início');
+  const header = document.querySelector('header');
+  assert.ok(header.querySelector('a[href="/"][aria-label="Compasso início"]'));
+  for (const [path, label] of [
+    ['/', 'Início'], ['/explorar', 'Explorar músicos'], ['/entrar', 'Entrar'], ['/cadastro', 'Criar conta'],
+  ]) {
+    const links = [...header.querySelectorAll(`a[href="${path}"]`)];
+    assert.ok(links.some(link => link.textContent.trim() === label), label);
+  }
 });

@@ -32,6 +32,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
   let state = null;
   let restored = false;
   let pageVersion = 0;
+  let renderedPath;
   let pending = Promise.resolve();
   let sessionVersion = 0;
 
@@ -133,18 +134,38 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  function updateSessionNavigation() {
+    app.querySelector('[data-private]').hidden = !state;
+    app.querySelector('[data-guest]').hidden = Boolean(state);
+    app.querySelector('[data-member]').hidden = !state;
+    const homeAccount = main.querySelector('[data-home-account]');
+    if (homeAccount) homeAccount.href = state ? '/painel' : '/cadastro';
+  }
+
   async function renderCurrentPage() {
     pageVersion++;
     const version = pageVersion;
     let route = routeFromPath(window.location.pathname);
-    app.querySelector('[data-private]').hidden = !state;
+    updateSessionNavigation();
     if (privateRoutes.has(route) && !state) {
       if (!restored) { main.innerHTML = emptyState('Restaurando sessão…'); return; }
       window.history.replaceState(null, '', '/entrar');
       route = 'login';
     }
-    if (route === 'home') main.innerHTML = renderHome();
-    else if (route === 'register' || route === 'login') {
+    renderedPath = window.location.pathname;
+    main.dataset.view = route;
+    app.classList.toggle('portfolio-page', route === 'preview');
+    if (route === 'home') {
+      main.innerHTML = renderHome(Boolean(state));
+      // O destino pertence a esta renderização, mesmo se o visitante navegar durante a leitura.
+      const featured = main.querySelector('[data-featured]');
+      try {
+        const artists = await api('/api/artists');
+        featured.innerHTML = renderArtistList(artists.slice(0, 3), 'Ainda não há portfólios publicados.');
+      } catch {
+        featured.textContent = 'Não foi possível carregar os músicos. Tente novamente em instantes.';
+      }
+    } else if (route === 'register' || route === 'login') {
       main.innerHTML = route === 'register' ? renderRegister() : renderLogin();
       if (route === 'register') bindSlugSuggestion(main.querySelector('form'));
       bindForm(async (data, current) => {
@@ -240,13 +261,23 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     } else if (route === 'explore') {
       main.innerHTML = renderExplore();
       let searchVersion = 0;
-      main.querySelector('[data-demo]').addEventListener('click', () => {
-        main.querySelector('[data-demo-content]').innerHTML = renderPortfolio(seed);
+      main.querySelector('[data-demo]').addEventListener('click', ({ currentTarget: button }) => {
+        const demo = main.querySelector('[data-demo-content]');
+        if (!demo.hasChildNodes()) demo.innerHTML = renderPortfolio(seed, false, true);
+        demo.hidden = !demo.hidden;
+        button.setAttribute('aria-expanded', String(!demo.hidden));
+        button.textContent = demo.hidden ? 'Ver perfil de demonstração' : 'Ocultar demonstração';
       });
       const search = async (query = {}) => {
         const requestVersion = ++searchVersion;
         const artists = await api('/api/artists?' + new URLSearchParams(query));
-        if (version === pageVersion && requestVersion === searchVersion) main.querySelector('[data-results]').innerHTML = renderArtistList(artists);
+        if (version !== pageVersion) return;
+        if (requestVersion === 1) {
+          const instruments = artists.map(artist => artist.profile.instrument).filter(Boolean);
+          const options = [...new Set(instruments)].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+          main.querySelector('datalist').replaceChildren(...options.map(value => new window.Option(value, value)));
+        }
+        if (requestVersion === searchVersion) main.querySelector('[data-results]').innerHTML = renderArtistList(artists);
       };
       bindForm(search);
       try { await search(); } catch (error) {
@@ -259,6 +290,10 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         if (version !== pageVersion) return;
         const artist = artists.find(item => item.slug === route.slice(7));
         main.innerHTML = artist ? renderPortfolio(artist) : emptyState('Portfólio não encontrado.');
+        app.classList.toggle('portfolio-page', Boolean(artist));
+        if (artist && window.location.hash.startsWith('#portfolio-')) {
+          window.document.getElementById(window.location.hash.slice(1))?.scrollIntoView();
+        }
       } catch (error) {
         if (version === pageVersion) main.innerHTML = emptyState(error.message);
       }
@@ -285,7 +320,9 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     run(renderCurrentPage);
     main.focus();
   });
-  window.addEventListener('popstate', () => run(renderCurrentPage));
+  window.addEventListener('popstate', () => {
+    if (window.location.pathname !== renderedPath) run(renderCurrentPage);
+  });
   const initialRender = renderCurrentPage();
   const ready = run(async () => {
     const version = sessionVersion;
@@ -296,7 +333,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     catch (error) { notice.textContent = error.message; }
     restored = true;
     // Não apaga campos digitados enquanto a sessão estava carregando.
-    app.querySelector('[data-private]').hidden = !state;
+    updateSessionNavigation();
     if (version === sessionVersion && privateRoutes.has(routeFromPath(window.location.pathname))) await renderCurrentPage();
     await initialRender;
   });

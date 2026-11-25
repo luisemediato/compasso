@@ -22,6 +22,7 @@ test('entrada apresenta e-mail e senha com rótulos e senha oculta', (t) => {
   const email = document.querySelector('input[name="email"]');
   const password = document.querySelector('input[name="password"]');
 
+  assert.equal(document.querySelector('main h1')?.textContent, 'Entre no seu espaço');
   assert.ok(email);
   assert.ok(password);
   assert.equal(email.labels[0]?.textContent.trim(), 'E-mail');
@@ -35,6 +36,7 @@ test('cadastro sugere o endereço e preserva a edição manual', (t) => {
   const artist = document.querySelector('input[name="artistName"]');
   const slug = document.querySelector('input[name="slug"]');
 
+  assert.equal(document.querySelector('main h1')?.textContent, 'Crie sua conta de músico');
   assert.ok(artist);
   assert.ok(slug);
   assert.equal(artist.labels[0]?.textContent.trim(), 'Nome artístico');

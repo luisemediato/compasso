@@ -286,6 +286,7 @@ test('perfil inválido preserva campos sem enviar para API', async t => {
 
 test('explorar filtra via API, abre músico e mostra catálogo de demonstração separado', async t => {
   const published = { ...account(), slug: 'davi-publico' };
+  published.profile.instrument = 'Viola';
   const paths = [];
   const ctx = open(t, '/explorar', async path => {
     paths.push(path);
@@ -293,6 +294,8 @@ test('explorar filtra via API, abre músico e mostra catálogo de demonstração
     return path.includes('q=ausente') ? [] : [published];
   });
   await ctx.app.ready;
+  const instrument = ctx.document.querySelector('[name="instrument"]');
+  assert.deepEqual([...instrument.list.options].map(option => option.value), ['Viola']);
   ctx.document.querySelector('[data-demo]').click();
   assert.match(ctx.document.querySelector('[data-demo-content]').textContent, /Luís Henrique/);
   fill(ctx.window, { q: 'ausente', instrument: 'Viola' });
@@ -304,20 +307,24 @@ test('explorar filtra via API, abre músico e mostra catálogo de demonstração
   ctx.document.querySelector('[data-results] a').click();
   await ctx.app.idle();
   assert.equal(ctx.window.location.pathname, '/davi-publico');
-  assert.equal(ctx.document.querySelector('h2').textContent, 'Davi');
+  assert.equal(ctx.document.querySelector('main h1')?.textContent, 'Davi');
   assert.equal(ctx.document.querySelector('[data-private]').hidden, true);
 });
 
 test('resposta de catálogo atrasada não substitui a página de contato', async t => {
   let resolve;
-  const ctx = open(t, '/', async path => path === '/api/session' ? null : new Promise(done => { resolve = done; }));
+  const ctx = open(t, '/', async path => {
+    if (path === '/api/session') return null;
+    if (path === '/api/artists?') return new Promise(done => { resolve = done; });
+    return [];
+  });
   await ctx.app.ready;
   ctx.document.querySelector('a[href="/explorar"]').click();
   const search = ctx.app.idle();
   ctx.document.querySelector('a[href="/contato"]').click();
   resolve([]);
   await search;
-  assert.equal(ctx.document.querySelector('h2').textContent, 'Fale com a equipe');
+  assert.equal(ctx.document.querySelector('main h1')?.textContent, 'Fale com a equipe');
 });
 
 test('portfólio ausente e rede indisponível oferecem mensagens sem dados privados', async t => {
@@ -364,7 +371,7 @@ test('retirada pede confirmação e preserva rascunho', async t => {
   assert.equal(count, 1);
   ctx.document.querySelector('a[href="/previa"]').click();
   await ctx.app.idle();
-  assert.equal(ctx.document.querySelector('h2').textContent, 'Davi');
+  assert.equal(ctx.document.querySelector('main h1')?.textContent, 'Davi');
 });
 
 test('busca mais recente prevalece sobre o catálogo inicial atrasado', async t => {
@@ -431,3 +438,49 @@ for (const [route, collection, fields] of [
     });
   }
 }
+
+test('vitrine usa no máximo três portfólios publicados e restaura o acesso do músico', async t => {
+  const artists = ['Ana', 'Bia', 'Caio', 'Dora'].map(name => account(name, name.toLowerCase()));
+  const ctx = open(t, '/', async path => {
+    if (path === '/api/session') return account('Nome do rascunho');
+    assert.equal(path, '/api/artists');
+    return artists;
+  });
+  await ctx.app.ready;
+  const featured = ctx.document.querySelector('[aria-labelledby="titulo-vitrine"]');
+  assert.ok(featured, 'a home deve exibir a vitrine');
+  assert.deepEqual([...featured.querySelectorAll('li a')].map(link => link.pathname),
+    ['/ana-musico', '/bia-musico', '/caio-musico']);
+  assert.doesNotMatch(featured.textContent, /Nome do rascunho|Dora|Luís Henrique/);
+  assert.equal(ctx.document.querySelector('[data-home-account]').pathname, '/painel');
+  assert.equal(ctx.document.querySelector('[data-guest]').hidden, true);
+});
+
+test('vitrine vazia informa a ausência de publicações sem inserir a demonstração', async t => {
+  const ctx = open(t, '/', async path => path === '/api/session' ? null : []);
+  await ctx.app.ready;
+  const featured = ctx.document.querySelector('[aria-labelledby="titulo-vitrine"]');
+  assert.match(featured?.textContent ?? '', /Ainda não há portfólios publicados/);
+  assert.equal(featured.querySelector('li a'), null);
+  assert.equal(ctx.document.querySelector('[data-home-account]').pathname, '/cadastro');
+});
+
+test('falha no catálogo deixa as ações da home disponíveis e distingue erro de catálogo vazio', async t => {
+  const ctx = open(t, '/', async path => {
+    if (path === '/api/session') return null;
+    throw new Error('Sem conexão');
+  });
+  await ctx.app.ready;
+  assert.match(ctx.document.querySelector('main').textContent, /Não foi possível carregar os músicos/);
+  assert.ok(ctx.document.querySelector('main a[href="/explorar"]'));
+});
+
+test('resposta tardia da vitrine não altera a próxima página', async t => {
+  const loading = Promise.withResolvers();
+  const ctx = open(t, '/', async path => path === '/api/session' ? null : loading.promise);
+  ctx.document.querySelector('a[href="/contato"]').click();
+  loading.resolve([account('Artista atrasado')]);
+  await ctx.app.ready;
+  assert.ok(ctx.document.querySelector('textarea[name="message"]'));
+  assert.doesNotMatch(ctx.document.querySelector('main').textContent, /Artista atrasado/);
+});

@@ -50,6 +50,8 @@ test('prévia omite contatos vazios, identidade privada e eventos sem opção p�
   draft.events = [concert, { ...concert, id: 'e2', title: 'Ensaio privado', visibility: 'private' }, { ...concert, id: 'e3', title: 'Evento legado', visibility: undefined }];
   const doc = fragment(renderPortfolio(draft, true));
   assert.match(doc.textContent, /Prévia privada/);
+  assert.equal(doc.querySelector('a[href="/publicacao"]')?.textContent, 'Revisar publicação');
+  assert.equal(doc.querySelector('#portfolio-sobre h1')?.textContent, 'Nome artístico');
   assert.match(doc.textContent, /Recital/);
   assert.doesNotMatch(doc.textContent, /Ensaio privado|Evento legado|Nome civil secreto|login@example.com/);
   assert.equal(doc.querySelector('a[href^="mailto:"]'), null);
@@ -60,6 +62,9 @@ test('portfólio mostra Instagram normalizado, contato escolhido e trabalhos', (
   Object.assign(draft.profile, { instagram: '@davi', email: 'publico@example.com' });
   draft.works = [{ id: 'w1', title: 'Gravação', url: 'https://example.com', description: 'Ao vivo' }];
   const doc = fragment(renderPortfolio(draft));
+  for (const id of ['portfolio-sobre', 'portfolio-trabalhos', 'portfolio-agenda', 'portfolio-contato']) {
+    assert.ok(doc.getElementById(id), id);
+  }
   assert.equal(doc.querySelector('a[href*="instagram"]').getAttribute('href'), 'https://www.instagram.com/davi/');
   assert.equal(doc.querySelector('a[href^="mailto:"]').getAttribute('href'), 'mailto:publico@example.com');
   assert.match(doc.textContent, /Gravação/);

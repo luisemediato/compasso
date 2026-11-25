@@ -59,21 +59,32 @@ test('32 · adiciona trabalho e encontra na prévia', async ({ page, artist }) =
 });
 
 test('36/44 · home separa público e músico, teclado e tela estreita', async ({ page, identity }) => {
-  await page.setViewportSize({ width: 375, height: 812 });
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  await expect(page.getByRole('link', { name: 'Explorar', exact: true })).toBeVisible();
+  const hero = page.getByRole('region', { name: /Seu talento merece/ });
+  const heading = hero.getByRole('heading', { level: 1 });
+  const photo = hero.getByRole('img');
+  const desktopText = await heading.boundingBox();
+  const desktopPhoto = await photo.boundingBox();
+  expect(desktopPhoto.x).toBeGreaterThanOrEqual(desktopText.x + desktopText.width);
+  await page.setViewportSize({ width: 375, height: 812 });
+  const mobileText = await heading.boundingBox();
+  const mobilePhoto = await photo.boundingBox();
+  expect(mobilePhoto.y).toBeGreaterThanOrEqual(mobileText.y + mobileText.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expect(page.getByRole('link', { name: 'Descobrir músicos', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Entrar', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Cadastrar', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Explorar', exact: true }).focus();
+  await expect(page.getByRole('link', { name: 'Criar conta', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Descobrir músicos', exact: true }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Explorar', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Encontre sua próxima escuta.', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Catálogo de demonstração' })).toBeVisible();
   await page.getByLabel('Nome, cidade ou instrumento').fill('sem-resultado-' + Date.now());
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Filtrar por instrumento')).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.goBack();
-  await expect(page.getByRole('heading', { name: 'Descubra artistas' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Seu talento merece/ })).toBeVisible();
   await register(page, identity);
   await page.getByRole('link', { name: 'Agenda', exact: true }).focus();
   await page.keyboard.press('Enter');
@@ -117,6 +128,9 @@ test('40 · acesso direto, republicação e privacidade da agenda', async ({ pag
   expect((await visitor.goto('http://127.0.0.1:4183/' + artist.slug)).status()).toBe(200);
   await expect(visitor.getByRole('heading', { name: 'Concerto público' })).toBeVisible();
   await expect(visitor.getByText('Ensaio privado', { exact: true })).toHaveCount(0);
+  await visitor.getByRole('navigation', { name: 'Seções do portfólio' }).getByRole('link', { name: 'Contato' }).click();
+  await expect(visitor).toHaveURL(/#portfolio-contato$/);
+  await expect(visitor.getByRole('heading', { name: 'Vamos conversar?' })).toBeInViewport();
   await expect(visitor.getByRole('link', { name: 'Instagram', exact: true })).toHaveAttribute('href', 'https://www.instagram.com/davi/');
   await page.getByRole('link', { name: 'Agenda', exact: true }).click();
   await page.getByRole('button', { name: 'Editar Concerto público', exact: true }).click();
