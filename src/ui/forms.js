@@ -1,3 +1,4 @@
+import { icon } from './components.js';
 import { suggestSlug } from '../domain/account.js';
 import { escapeHtml } from '../domain/formatting.js';
 
@@ -25,4 +26,18 @@ export function bindSlugSuggestion(form) {
   artist.addEventListener('input', () => {
     if (!edited) slug.value = suggestSlug(artist.value);
   });
+}
+
+export function newItemButton(label) {
+  return `<button type="button" class="btn" data-new aria-haspopup="dialog" aria-controls="editor">${icon('plus')}${label}</button>`;
+}
+
+export function collectionDialog(createLabel, editLabel, saveLabel, fields) {
+  return `<dialog id="editor" aria-labelledby="editor-title" data-create-title="${createLabel}" data-edit-title="${editLabel}">
+    <h2 id="editor-title">${createLabel}</h2>
+    <form method="post">
+      <input type="hidden" name="id">
+      <div class="form-grid">${fields}</div>
+      <div class="actions">${formActions(saveLabel)}<button type="button" data-cancel>Cancelar edição</button></div>
+    </form></dialog>`;
 }

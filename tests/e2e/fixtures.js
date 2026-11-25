@@ -40,6 +40,7 @@ export async function profile(page, name) {
 
 export async function event(page, title = 'Concerto de teste', visibility = 'private') {
   await page.getByRole('link', { name: 'Agenda', exact: true }).click();
+  await page.getByRole('button', { name: 'Nova apresentação', exact: true }).click();
   await page.getByLabel('Título', { exact: true }).fill(title);
   await page.getByLabel('Data', { exact: true }).fill('2030-06-15');
   await page.getByLabel('Horário').fill('19:30');

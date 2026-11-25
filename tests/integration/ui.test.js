@@ -12,6 +12,10 @@ function open(t, path, api, initial) {
   const dom = new JSDOM('<div id="app"></div>', { url: 'https://compasso.test' + path });
   t.after(() => dom.window.close());
   if (initial) dom.window.localStorage.setItem('compasso-v2', JSON.stringify(initial));
+  // O jsdom mantém o atributo open. Escape, foco e modalidade são exercitados no Chromium.
+  const dialog = dom.window.HTMLDialogElement.prototype;
+  dialog.showModal ??= function () { this.open = true; };
+  dialog.close ??= function () { this.open = false; this.dispatchEvent(new dom.window.Event('close')); };
   const app = startApp(dom.window, { api });
   return { window: dom.window, document: dom.window.document, app };
 }
@@ -80,12 +84,15 @@ test('trabalhos só mudam após salvar; cancelar edição e falhar preservam lis
     return saved;
   });
   await ctx.app.ready;
+  ctx.document.querySelector('[data-new]').click();
+  assert.equal(ctx.document.querySelector('dialog').open, true);
   fill(ctx.window, { title: 'Recital', url: 'https://example.com/recital' });
   await submit(ctx);
   assert.equal(ctx.document.querySelectorAll('[data-edit]').length, 1);
   ctx.document.querySelector('[data-edit]').click();
   fill(ctx.window, { title: 'Não salvar' });
   ctx.document.querySelector('[data-cancel]').click();
+  assert.equal(ctx.document.querySelector('dialog').open, false);
   assert.match(ctx.document.querySelector('[data-list]').textContent, /Recital/);
   assert.doesNotMatch(ctx.document.querySelector('[data-list]').textContent, /Não salvar/);
   ctx.document.querySelector('[data-edit]').click();
@@ -111,6 +118,7 @@ test('agenda seleciona dia, mantém visibilidade na edição e permite cancelar 
     return saved;
   });
   await ctx.app.ready;
+  ctx.document.querySelector('[data-new]').click();
   const day = ctx.document.querySelector('[data-day]');
   day.click();
   assert.equal(ctx.document.querySelector('[name="date"]').value, day.dataset.day);
@@ -118,10 +126,12 @@ test('agenda seleciona dia, mantém visibilidade na edição e permite cancelar 
   await submit(ctx);
   ctx.document.querySelector('[data-edit]').click();
   assert.equal(ctx.document.querySelector('[name="visibility"]').value, 'public');
+  ctx.document.querySelector('[data-cancel]').click();
   ctx.window.confirm = () => false;
   ctx.document.querySelector('[data-delete]').click();
   await ctx.app.idle();
   assert.equal(saved.events.length, 1);
+  ctx.document.querySelector('[data-edit]').click();
   fill(ctx.window, { visibility: 'private' });
   await submit(ctx);
   assert.equal(saved.events[0].visibility, 'private');
@@ -341,11 +351,14 @@ test('agenda filtra lista e navega entre meses sem perder o formulário', async 
   saved.events = [{ id: 'e1', title: 'Recital', date: '2030-06-15', time: '19:00', venue: 'Sala' }];
   const ctx = open(t, '/agenda', async () => saved);
   await ctx.app.ready;
-  fill(ctx.window, { title: 'Não perder', filter: 'ausente' });
+  fill(ctx.window, { filter: 'ausente' });
+  ctx.document.querySelector('[data-new]').click();
+  fill(ctx.window, { title: 'Não perder' });
   assert.match(ctx.document.querySelector('[data-list]').textContent, /Nenhuma apresentação/);
   for (let i = 0; i < 13; i++) ctx.document.querySelector('[data-month="1"]').click();
   for (let i = 0; i < 13; i++) ctx.document.querySelector('[data-month="-1"]').click();
   assert.equal(ctx.document.querySelector('[name="title"]').value, 'Não perder');
+  ctx.document.querySelector('[data-cancel]').click();
   fill(ctx.window, { filter: '' });
   ctx.document.querySelector('[data-edit]').click();
   assert.equal(ctx.document.querySelector('[name="visibility"]').value, 'private');
@@ -414,6 +427,7 @@ for (const [route, collection, fields] of [
       };
       const ctx = open(t, route, api);
       await ctx.app.ready;
+      ctx.document.querySelector('[data-new]').click();
       fill(ctx.window, { ...fields, title: 'Recital A' });
       const firstSave = submit(ctx);
       if (delayed) {
@@ -429,6 +443,7 @@ for (const [route, collection, fields] of [
         ctx.document.querySelector('[data-edit]').click();
         ctx.document.querySelector('[data-cancel]').click();
       }
+      ctx.document.querySelector('[data-new]').click();
       fill(ctx.window, { ...fields, title: 'Recital B' });
       await submit(ctx);
       assert.deepEqual(saved[collection].map(item => item.title), ['Recital A', 'Recital B']);
@@ -499,6 +514,11 @@ test('área do músico indica a seção ativa e separa o painel da prévia', asy
   assert.notEqual(calendar.querySelector('h3').textContent, month);
   calendar.querySelector('[data-month="-1"]').click();
   assert.equal(calendar.querySelector('h3').textContent, month);
+  ctx.document.querySelector('main a[href="/agenda?novo=1"]').click();
+  await ctx.app.idle();
+  assert.equal(ctx.document.querySelector('dialog').open, true);
+  assert.equal(ctx.window.location.search, '');
+  ctx.document.querySelector('[data-cancel]').click();
   sidebar.querySelector('a[href="/perfil"]').click();
   await ctx.app.idle();
   assert.equal(currentLink()?.pathname, '/perfil');
@@ -509,4 +529,76 @@ test('área do músico indica a seção ativa e separa o painel da prévia', asy
   ctx.document.querySelector('[data-member] a[href="/painel"]').click();
   await ctx.app.idle();
   assert.equal(currentLink()?.pathname, '/painel');
+});
+
+test('agenda combina o período e a busca sem ocultar registros antigos da lista completa', async t => {
+  const saved = account();
+  saved.events = [
+    { id: 'a', title: 'Recital anterior', date: '2010-01-05', venue: 'Sala' },
+    { id: 'b', title: 'Recital futuro', date: '2099-06-01', venue: 'Teatro' },
+  ];
+  const ctx = open(t, '/agenda', async () => saved);
+  await ctx.app.ready;
+  const list = ctx.document.querySelector('[data-list]');
+  assert.equal(list.querySelectorAll('li').length, 2);
+  ctx.document.querySelector('[value="past"]').click();
+  assert.match(list.textContent, /Recital anterior/);
+  assert.doesNotMatch(list.textContent, /Recital futuro/);
+  ctx.document.querySelector('[value="upcoming"]').click();
+  fill(ctx.window, { filter: 'Sala' });
+  assert.match(list.textContent, /Nenhuma apresentação/);
+  fill(ctx.window, { filter: 'Teatro' });
+  assert.match(list.textContent, /Recital futuro/);
+});
+
+test('conflito ao editar trabalho oferece recarga dentro do próprio editor', async t => {
+  const ctx = open(t, '/trabalhos', async path => {
+    if (path === '/api/session') return account();
+    throw Object.assign(new Error('O rascunho mudou.'), { status: 409 });
+  });
+  await ctx.app.ready;
+  ctx.document.querySelector('[data-new]').click();
+  fill(ctx.window, { title: 'Gravação', url: 'https://example.org/video' });
+  await submit(ctx);
+  const dialog = ctx.document.querySelector('dialog[open]');
+  assert.ok(dialog?.querySelector('[data-reload]'));
+  assert.equal(dialog.querySelector('[name="title"]').value, 'Gravação');
+});
+
+test('exclusão concluída em segundo plano conserva os campos da página seguinte', async t => {
+  const saved = account();
+  saved.works = [{ id: 'a', title: 'Recital', url: 'https://example.org/recital' }];
+  const response = Promise.withResolvers();
+  const ctx = open(t, '/trabalhos', async path => path === '/api/session' ? saved : response.promise);
+  await ctx.app.ready;
+  ctx.window.confirm = () => true;
+  ctx.document.querySelector('[data-delete]').click();
+  const deletion = ctx.app.idle();
+  ctx.document.querySelector('[data-private] a[href="/perfil"]').click();
+  await ctx.app.idle();
+  fill(ctx.window, { bio: 'Trajetória em edição' });
+  response.resolve({ ...saved, revision: 1, works: [] });
+  await deletion;
+  assert.equal(ctx.document.querySelector('[name="bio"]').value, 'Trajetória em edição');
+});
+
+test('excluir um trabalho conserva a edição de outro iniciada durante a gravação', async t => {
+  const saved = account();
+  saved.works = ['a', 'b'].map(id => ({ id, title: 'Trabalho ' + id, url: 'https://example.org/' + id }));
+  const response = Promise.withResolvers();
+  const ctx = open(t, '/trabalhos', async path => path === '/api/session' ? saved : response.promise);
+  await ctx.app.ready;
+  ctx.window.confirm = () => true;
+  ctx.document.querySelector('[data-delete="a"]').click();
+  const deletion = ctx.app.idle();
+  ctx.document.querySelector('[data-edit="b"]').click();
+  fill(ctx.window, { title: 'Ainda escrevendo' });
+  response.resolve({ ...saved, revision: 1, works: saved.works.slice(1) });
+  await deletion;
+  assert.equal(ctx.document.querySelector('dialog').open, true);
+  assert.equal(ctx.document.querySelector('[name="title"]').value, 'Ainda escrevendo');
+  ctx.document.querySelector('[data-cancel]').click();
+  await ctx.app.idle();
+  assert.equal(ctx.document.querySelector('[data-edit="a"]'), null);
+  assert.ok(ctx.document.querySelector('[data-edit="b"]'));
 });

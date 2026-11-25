@@ -18,6 +18,8 @@ const concert = { id: 'e1', title: 'Recital', date: '2030-06-15', time: '19:00',
 
 test('perfil usa rótulos, contato opcional e Instagram como texto', () => {
   const doc = fragment(renderProfile(newDraft('Davi').profile));
+  assert.equal(doc.querySelector('h1')?.textContent, 'Meu perfil');
+  assert.ok(doc.querySelector('a[href="/previa"]'));
   const instagram = doc.querySelector('[name="instagram"]');
   assert.equal(instagram.type, 'text');
   assert.equal(instagram.labels[0].textContent, 'Instagram (usuário ou link)');
@@ -104,11 +106,14 @@ test('calendário expõe seleção e inclui o dia bissexto', () => {
 test('trabalhos vazios apresentam formulário e mensagem', () => {
   const doc = fragment(renderWorksPage([]));
   assert.match(doc.textContent, /Nenhum trabalho/);
-  assert.equal(doc.querySelector('[name="url"]').type, 'url');
+  assert.equal(doc.querySelector('dialog [name="url"]')?.type, 'url');
+  assert.equal(doc.querySelector('dialog').open, false);
+  assert.equal(doc.querySelector('[data-new]').getAttribute('aria-haspopup'), 'dialog');
 });
 
 test('publicação inicial não oferece retirada nem endereço público', () => {
   const doc = fragment(renderPublication({ ...newDraft('Davi'), slug: 'davi', publication: null }));
+  assert.match(doc.querySelector('.note')?.textContent ?? '', /\/davi/);
   assert.equal(doc.querySelector('[data-unpublish]'), null);
   assert.equal(doc.querySelector('a[href="/davi"]'), null);
   assert.equal(doc.querySelector('[data-publish]').textContent, 'Publicar');

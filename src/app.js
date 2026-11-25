@@ -41,8 +41,8 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     return pending;
   }
 
-  function reportError(error) {
-    notice.textContent = error.message;
+  function reportError(error, target = notice) {
+    target.textContent = error.message;
     if (error.status === 409 && state) {
       const reload = window.document.createElement('button');
       reload.type = 'button';
@@ -56,7 +56,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
           await renderCurrentPage();
         });
       });
-      notice.append(reload);
+      target.append(reload);
     }
   }
 
@@ -79,7 +79,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     if (error.status === 409 && form.elements.namedItem('slug')) {
       for (const name of ['email', 'slug']) mark(name);
     }
-    if (error.status === 409 && state) reportError(error);
+    if (error.status === 409 && state) reportError(error, form.closest('dialog') ? target : notice);
     const fields = { 'nome artístico': 'name', instrumento: 'instrument', trajetória: 'bio', Instagram: 'instagram', senha: 'password', endereço: 'slug', 'e-mail': 'email', título: 'title', horário: 'time', data: 'date', local: 'venue', link: 'url' };
     for (const [word, name] of Object.entries(fields)) {
       if (error.message.includes(word)) mark(name);
@@ -94,6 +94,8 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       const button = form.querySelector('[type="submit"]');
       if (button.disabled) return;
       button.disabled = true;
+      const cancel = form.querySelector('[data-cancel]');
+      if (cancel) cancel.disabled = true;
       notice.textContent = '';
       form.querySelector('[data-error]').textContent = '';
       form.querySelectorAll('[aria-invalid]').forEach(field => field.removeAttribute('aria-invalid'));
@@ -102,7 +104,10 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
           await handler(Object.fromEntries(new window.FormData(form)), () => version === pageVersion);
         } catch (error) {
           if (version === pageVersion) showError(form, error);
-        } finally { button.disabled = false; }
+        } finally {
+          button.disabled = false;
+          if (cancel) cancel.disabled = false;
+        }
       });
     });
   }
@@ -206,9 +211,21 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         bindForm, save: saveDraft, refresh: renderCurrentPage, run });
       if (isAgenda) {
         bindCalendar(main.querySelector('[data-calendar]'), today(), state.events, main.querySelector('[name="date"]'));
-        main.querySelector('[name="filter"]').addEventListener('input', event => {
-          main.querySelector('[data-list]').innerHTML = renderEvents(filterEvents(state.events, event.target.value), true);
+        const filters = main.querySelector('[data-agenda-filter]');
+        filters.addEventListener('input', () => {
+          const period = filters.querySelector('[name="period"]:checked').value;
+          const date = today();
+          let events = filterEvents(state.events, filters.querySelector('[name="filter"]').value);
+          if (period === 'upcoming') events = events.filter(event => event.date >= date);
+          if (period === 'past') events = events.filter(event => event.date < date);
+          main.querySelector('[data-list]').innerHTML = renderEvents(events, true);
         });
+      }
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('novo') === '1') {
+        url.searchParams.delete('novo');
+        window.history.replaceState(null, '', url);
+        main.querySelector('[data-new]').click();
       }
     } else if (route === 'preview') main.innerHTML = renderPortfolio(state, true);
     else if (route === 'publication') {

@@ -1,34 +1,64 @@
 import { deleteRecord, saveRecord } from '../domain/collections.js';
 
 export function bindCollection({ main, window, getItems, collection, validate, bindForm, save, refresh, run }) {
-  const form = main.querySelector('form');
-  const page = form.parentElement;
-  main.querySelector('[data-cancel]').addEventListener('click', () => {
+  const dialog = main.querySelector('dialog');
+  const form = dialog.querySelector('form');
+  const add = main.querySelector('[data-new]');
+  let opener;
+  let refreshOnClose = false;
+
+  function openEditor(trigger, record) {
+    opener = trigger;
     form.reset();
     form.elements.namedItem('id').value = '';
     form.querySelector('[data-error]').textContent = '';
+    for (const field of form.querySelectorAll('[aria-invalid], [aria-describedby="form-feedback"]')) {
+      field.removeAttribute('aria-invalid');
+      field.removeAttribute('aria-describedby');
+    }
+    for (const [name, value] of Object.entries(record ?? {})) {
+      const field = form.elements.namedItem(name);
+      if (field) field.value = value;
+    }
+    form.elements.namedItem('date')?.dispatchEvent(new window.Event('change'));
+    dialog.querySelector('h2').textContent = record ? dialog.dataset.editTitle : dialog.dataset.createTitle;
+    dialog.showModal();
     form.elements.namedItem('title').focus();
+  }
+
+  add.addEventListener('click', () => openEditor(add));
+  main.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('cancel', event => {
+    if (form.querySelector('[type="submit"]').disabled) event.preventDefault();
+  });
+  dialog.addEventListener('close', () => {
+    if (dialog.open || !main.contains(form)) return;
+    if (refreshOnClose) {
+      run(async () => {
+        await refresh();
+        main.querySelector('[data-new]')?.focus();
+      });
+    } else opener?.focus();
   });
   main.querySelector('[data-list]').addEventListener('click', event => {
     const edit = event.target.closest('[data-edit]');
     const remove = event.target.closest('[data-delete]');
     if (edit) {
       const record = getItems().find(item => item.id === edit.dataset.edit);
-      form.reset();
-      for (const [name, value] of Object.entries(record)) {
-        const field = form.elements.namedItem(name);
-        if (field) field.value = value;
-      }
-      form.elements.namedItem('title').focus();
+      if (record) openEditor(edit, record);
     }
     if (remove && !remove.disabled && window.confirm('Excluir este registro?')) {
-      remove.disabled = true;
+      const editButton = remove.parentElement.querySelector('[data-edit]');
+      remove.disabled = editButton.disabled = true;
       run(async () => {
         try {
           await save({ [collection]: deleteRecord(getItems(), remove.dataset.delete) });
-          if (page.contains(form)) await refresh();
+          if (!main.contains(form)) return;
+          if (dialog.open) refreshOnClose = true;
+          else await refresh();
+        } finally {
+          remove.disabled = editButton.disabled = false;
         }
-        finally { remove.disabled = false; }
       });
     }
   });
@@ -37,6 +67,9 @@ export function bindCollection({ main, window, getItems, collection, validate, b
     const error = validate(record);
     if (error) throw new Error(error);
     await save({ [collection]: saveRecord(getItems(), record) });
-    if (current()) await refresh();
+    if (current()) {
+      await refresh();
+      main.querySelector('[data-new]')?.focus();
+    }
   });
 }

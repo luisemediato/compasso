@@ -75,7 +75,7 @@ Para repetir a verificação, execute `npm run test:smoke -- https://compasso.co
 
 ### Evidências e vídeo
 
-A suíte atual contém **85 unitários**, **88 integrações** e **11 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
+A suíte atual contém **85 unitários**, **92 integrações** e **11 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
 
 O [roteiro do vídeo](docs/roteiro-video.md) organiza uma apresentação de até 5 minutos com sistema, tecnologias, uso de IA e testes. A dupla ainda precisa gravar, publicar o vídeo no YouTube e enviar os cinco links no Moodle. O histórico pode ser conferido com `git rev-list --count --no-merges origin/main` após `git fetch origin`.
 

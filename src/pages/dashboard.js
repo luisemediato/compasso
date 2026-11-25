@@ -1,8 +1,7 @@
-import { escapeHtml } from '../domain/formatting.js';
 import { upcoming } from '../domain/collections.js';
 import { renderEvents } from '../ui/events.js';
 import { renderCalendar } from '../ui/calendar.js';
-import { icon } from '../ui/components.js';
+import { icon, pageHeading } from '../ui/components.js';
 
 export function renderDashboard(state, today) {
   const checks = [state.profile.name, state.profile.instrument, state.profile.city, state.profile.bio, state.works.length];
@@ -14,10 +13,8 @@ export function renderDashboard(state, today) {
     ['Trabalhos no portfólio', String(state.works.length).padStart(2, '0'), 'music'],
     ['Seu perfil', progress + '%', 'user'],
   ];
-  return `<div class="page-heading">
-      <div><p class="eyebrow">Seu espaço criativo</p><h1>Painel de ${escapeHtml(state.profile.name)}</h1></div>
-      <a class="btn" href="/agenda">Nova apresentação ${icon('calendar')}</a>
-    </div>
+  const action = `<a class="btn" href="/agenda?novo=1">Nova apresentação ${icon('calendar')}</a>`;
+  return pageHeading('Seu espaço criativo', 'Painel de ' + state.profile.name, action) + `
     <section class="dashboard-hero">
       <div><p class="eyebrow">Seu talento, em um só lugar</p><h2>O palco é seu.<br>A gente organiza o resto.</h2>
       <p>Compartilhe sua trajetória, seus trabalhos e os próximos encontros com a sua música.</p>
@@ -40,7 +37,7 @@ export function renderDashboard(state, today) {
       </section>
       <section class="panel quick-card">
         ${icon('music')}<h2>Dê play no seu trabalho</h2><p>Adicione uma interpretação ao seu portfólio.</p>
-        <a href="/trabalhos">Adicionar trabalho ${icon('arrow')}</a>
+        <a href="/trabalhos?novo=1">Adicionar trabalho ${icon('arrow')}</a>
       </section>
     </div>`;
 }

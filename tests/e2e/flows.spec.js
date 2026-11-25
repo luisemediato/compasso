@@ -50,6 +50,13 @@ test('30 · exclui após confirmação e continua ausente na recarga', async ({ 
 
 test('32 · adiciona trabalho e encontra na prévia', async ({ page, artist }) => {
   await page.getByRole('link', { name: 'Trabalhos', exact: true }).click();
+  const addWork = page.getByRole('button', { name: 'Adicionar trabalho', exact: true });
+  await addWork.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(addWork).toBeFocused();
+  await addWork.click();
   await page.getByLabel('Título', { exact: true }).fill('Gravação ' + artist.name);
   await page.getByLabel('Link do trabalho').fill('https://example.com/gravacao');
   await page.getByRole('button', { name: 'Salvar trabalho' }).click();
@@ -89,7 +96,8 @@ test('36/44 · home separa público e músico, teclado e tela estreita', async (
   await page.getByRole('link', { name: 'Agenda', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible();
-  await page.getByLabel('Título', { exact: true }).focus();
+  await page.getByRole('button', { name: 'Nova apresentação', exact: true }).click();
+  await expect(page.getByLabel('Título', { exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Data', { exact: true })).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

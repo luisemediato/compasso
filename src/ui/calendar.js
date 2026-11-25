@@ -3,9 +3,11 @@ import { calendarDays } from '../domain/collections.js';
 const monthFormat = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 export function renderCalendar(year, month, selected = '', { events = [], selectable = true } = {}) {
-  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const prefix = `${String(year).padStart(4, '0')}-${String(month + 1).padStart(2, '0')}`;
   const dates = new Set(events.map(event => event.date));
-  const monthName = monthFormat.format(new Date(Date.UTC(year, month, 1)));
+  const first = new Date(0);
+  first.setUTCFullYear(year, month, 1);
+  const monthName = monthFormat.format(first);
   return `<div class="calendar">
     <div class="calendar-head"><h3>${monthName}</h3><div>
       <button type="button" data-month="-1" aria-label="Mês anterior">‹</button>
@@ -29,18 +31,27 @@ export function renderCalendar(year, month, selected = '', { events = [], select
 export function bindCalendar(container, today, events, dateInput) {
   let [year, month] = today.split('-').map(Number);
   month--;
+  function draw() {
+    container.innerHTML = renderCalendar(year, month, dateInput?.value ?? today, { events, selectable: Boolean(dateInput) });
+  }
+  dateInput?.addEventListener('change', () => {
+    if (!dateInput.value) return;
+    [year, month] = dateInput.value.split('-').map(Number);
+    month--;
+    draw();
+  });
   container.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
     const { day, month: step } = button.dataset;
     if (step) {
-      const next = new Date(year, month + Number(step), 1);
-      year = next.getFullYear();
-      month = next.getMonth();
+      month += Number(step);
+      year += Math.floor(month / 12);
+      month = (month + 12) % 12;
     } else if (dateInput && day) {
       dateInput.value = day;
     }
-    container.innerHTML = renderCalendar(year, month, dateInput?.value ?? today, { events, selectable: Boolean(dateInput) });
+    draw();
     container.querySelector(step ? `[data-month="${step}"]` : `[data-day="${day}"]`)?.focus();
   });
 }
