@@ -246,23 +246,34 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       main.innerHTML = renderPortfolio(state, true);
       scrollToSection(window.location.hash);
     } else if (route === 'publication') {
-      main.innerHTML = renderPublication(state);
-      for (const action of ['publish', 'unpublish']) {
-        main.querySelector(`[data-${action}]`)?.addEventListener('click', event => {
-          const button = event.currentTarget;
-          if (button.disabled || (action === 'unpublish' && !window.confirm('Retirar o portfólio público? Seu rascunho será preservado.'))) return;
-          button.disabled = true;
-          run(async () => {
-            try {
-              const { id, revision } = state;
-              await mutate(`/api/${action}`, { id, revision });
-              if (version !== pageVersion) return;
-              notice.textContent = action === 'publish' ? 'Portfólio publicado.' : 'Publicação retirada.';
-              await renderCurrentPage();
-            } finally { button.disabled = false; }
-          });
-        });
+      main.innerHTML = renderPublication(state, window.location.origin);
+      const dialog = main.querySelector('#confirmar-publicacao');
+      const publish = main.querySelector('[data-publish]');
+      const unpublish = main.querySelector('[data-unpublish]');
+      async function changePublication(action) {
+        const { id, revision } = state;
+        await mutate(`/api/${action}`, { id, revision });
+        if (version !== pageVersion) return;
+        notice.textContent = action === 'publish' ? 'Portfólio publicado.' : 'Publicação retirada.';
+        await renderCurrentPage();
+        main.querySelector('[data-publish]')?.focus();
       }
+
+      publish.addEventListener('click', () => dialog.showModal());
+      dialog.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('cancel', event => {
+        if (dialog.querySelector('[type="submit"]').disabled) event.preventDefault();
+      });
+      bindForm(() => changePublication('publish'));
+
+      unpublish?.addEventListener('click', () => {
+        if (unpublish.disabled || !window.confirm('Retirar o portfólio público? Seu rascunho será preservado.')) return;
+        unpublish.disabled = publish.disabled = true;
+        run(async () => {
+          try { await changePublication('unpublish'); }
+          finally { unpublish.disabled = publish.disabled = false; }
+        });
+      });
     } else if (route === 'contact') {
       main.innerHTML = renderContact();
       bindForm(async (data, current) => {
