@@ -189,6 +189,9 @@ main > .empty-state { margin: 2rem auto; width: min(90%, 64rem); }
 .contact-layout { max-width: 38rem; margin: 1rem auto 3rem; }
 .contact-layout h1, .explore-page h1 { margin-block: .65rem; }
 .field-help { font-size: .8rem; color: var(--muted); }
+ul.field-help { margin: 0; padding-left: 1.25rem; }
+#previa-endereco { overflow-wrap: anywhere; }
+#previa-endereco:empty { display: none; }
 [aria-invalid="true"] { border-color: #972b25; }
 .explore-page { max-width: 64rem; }
 .explore-page > .intro { margin-top: .5rem; font-size: .875rem; line-height: 1.7; color: #4e6056; }

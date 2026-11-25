@@ -17,15 +17,21 @@ export function formActions(label = 'Salvar') {
 export function bindSlugSuggestion(form) {
   const artist = form.elements.namedItem('artistName');
   const slug = form.elements.namedItem('slug');
-  let edited = false;
+  const preview = form.querySelector('#previa-endereco');
+  let edited = Boolean(slug.value);
 
+  function updatePreview() {
+    preview.textContent = slug.value ? form.ownerDocument.location.origin + '/' + slug.value : '';
+  }
   slug.addEventListener('input', () => {
-    edited = true;
+    edited = Boolean(slug.value);
+    updatePreview();
   });
-
   artist.addEventListener('input', () => {
     if (!edited) slug.value = suggestSlug(artist.value);
+    updatePreview();
   });
+  updatePreview();
 }
 
 export function newItemButton(label) {

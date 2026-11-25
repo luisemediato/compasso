@@ -73,8 +73,11 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     target.focus();
     function mark(name) {
       const field = form.elements.namedItem(name);
-      field?.setAttribute('aria-invalid', 'true');
-      field?.setAttribute('aria-describedby', target.id);
+      if (!field) return;
+      field.setAttribute('aria-invalid', 'true');
+      const descriptions = new Set((field.getAttribute('aria-describedby') || '').split(' ').filter(Boolean));
+      descriptions.add(target.id);
+      field.setAttribute('aria-describedby', [...descriptions].join(' '));
     }
     // O servidor não distingue a colisão de e-mail da colisão de slug.
     if (error.status === 409 && form.elements.namedItem('slug')) {
@@ -99,7 +102,12 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       if (cancel) cancel.disabled = true;
       notice.textContent = '';
       form.querySelector('[data-error]').textContent = '';
-      form.querySelectorAll('[aria-invalid]').forEach(field => field.removeAttribute('aria-invalid'));
+      for (const field of form.querySelectorAll('[aria-invalid]')) {
+        field.removeAttribute('aria-invalid');
+        const help = field.getAttribute('aria-describedby').split(' ').filter(id => id !== 'form-feedback').join(' ');
+        if (help) field.setAttribute('aria-describedby', help);
+        else field.removeAttribute('aria-describedby');
+      }
       run(async () => {
         try {
           await handler(Object.fromEntries(new window.FormData(form)), () => version === pageVersion);
