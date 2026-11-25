@@ -138,21 +138,72 @@ test('agenda seleciona dia, mantém visibilidade na edição e permite cancelar 
   assert.equal(saved.events[0].visibility, 'private');
 });
 
-test('publicação mantém a versão anterior enquanto o perfil do rascunho muda', async t => {
+test('cancelar preserva a publicação e confirmar envia uma atualização com a revisão atual', async t => {
   const saved = account();
   saved.profile.instrument = 'Viola';
-  saved.publication = { slug: saved.slug, ...newDraft('Versão publicada') };
+  const previous = '2026-11-20T16:23:00.000Z';
+  const next = '2026-11-25T20:45:12.000Z';
+  saved.publication = { slug: saved.slug, ...newDraft('Versão publicada'), publishedAt: previous };
+  let writes = 0;
+  const response = Promise.withResolvers();
   const ctx = open(t, '/publicacao', async (path, body) => {
     if (path === '/api/session') return saved;
     assert.equal(path, '/api/publish');
     assert.deepEqual(body, { id: saved.id, revision: 0 });
-    return { ...saved, revision: 1, publication: { ...saved, publishedAt: '2026-11-23' } };
+    writes++;
+    await response.promise;
+    return { ...saved, revision: 1, publication: { ...saved, publishedAt: next } };
   });
   await ctx.app.ready;
   assert.match(ctx.document.querySelector('main').textContent, /Alterações pendentes/);
-  ctx.document.querySelector('[data-publish]').click();
+  const oldTime = ctx.document.querySelector('time');
+  assert.equal(oldTime?.dateTime, previous);
+  assert.ok(oldTime.textContent.includes(new Date(previous).toLocaleDateString('pt-BR')));
+  assert.match(oldTime.textContent, /\d{2}:\d{2}/);
+  const opener = ctx.document.querySelector('[data-publish]');
+  opener.click();
+  const dialog = ctx.document.querySelector('dialog[open]');
+  assert.match(dialog.textContent, /https:\/\/compasso\.test\/a-musico/);
+  dialog.querySelector('[data-cancel]').click();
+  assert.equal(writes, 0);
+  assert.equal(oldTime.dateTime, previous);
+  opener.click();
+  const confirm = dialog.querySelector('[type="submit"]');
+  confirm.click();
+  confirm.click();
+  assert.equal(writes, 1);
+  assert.equal(confirm.disabled, true);
+  response.resolve();
   await ctx.app.idle();
+  assert.equal(ctx.document.querySelector('time').dateTime, next);
   assert.match(ctx.document.querySelector('main').textContent, /Sem alterações pendentes/);
+});
+
+test('a primeira publicação pode ser cancelada e um erro permite nova tentativa', async t => {
+  const saved = account();
+  let writes = 0;
+  const ctx = open(t, '/publicacao', async path => {
+    if (path === '/api/session') return saved;
+    writes++;
+    if (writes === 1) throw new Error('Informe seu instrumento.');
+    return { ...saved, revision: 1, publication: { ...saved, publishedAt: '2026-11-25T18:00:00Z' } };
+  });
+  await ctx.app.ready;
+  const opener = ctx.document.querySelector('[data-publish]');
+  opener.click();
+  const dialog = ctx.document.querySelector('dialog[open]');
+  assert.ok(dialog);
+  dialog.querySelector('[data-cancel]').click();
+  assert.equal(writes, 0);
+  assert.equal(ctx.document.querySelector('time'), null);
+  opener.click();
+  await submit(ctx);
+  assert.match(dialog.querySelector('[data-error]').textContent, /instrumento/);
+  assert.equal(dialog.open, true);
+  await submit(ctx);
+  assert.equal(writes, 2);
+  assert.equal(ctx.document.querySelector('dialog[open]'), null);
+  assert.equal(ctx.document.querySelector('time').dateTime, '2026-11-25T18:00:00Z');
 });
 
 test('contato só confirma após a API concluir e conserva mensagem em caso de erro', async t => {

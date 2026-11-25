@@ -56,5 +56,6 @@ export async function event(page, title = 'Concerto de teste', visibility = 'pri
 export async function publish(page) {
   await page.getByRole('link', { name: 'Publicação', exact: true }).click();
   await page.getByRole('button', { name: /^(Publicar|Republicar)$/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmar publicação' }).click();
   await expect(page.getByText('Sem alterações pendentes.')).toBeVisible();
 }

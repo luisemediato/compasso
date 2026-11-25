@@ -107,6 +107,15 @@ test('34 · editar rascunho mantém a versão vista pelo visitante', async ({ pa
   await profile(page, artist.name);
   await publish(page);
   await profile(page, 'Nome ainda privado');
+  await page.getByRole('link', { name: 'Publicação', exact: true }).click();
+  const oldTime = await page.locator('.publication-panel time').getAttribute('datetime');
+  const republish = page.getByRole('button', { name: 'Republicar' });
+  await republish.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText(new URL('/' + artist.slug, page.url()).href, { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await expect(republish).toBeFocused();
+  await expect(page.locator('.publication-panel time')).toHaveAttribute('datetime', oldTime);
   await visitor.goto('http://127.0.0.1:4183/' + artist.slug);
   await expect(visitor.getByRole('heading', { name: artist.name, exact: true })).toBeVisible();
   await expect(visitor.getByText('Nome ainda privado', { exact: true })).toHaveCount(0);
