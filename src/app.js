@@ -1,7 +1,7 @@
 import { routeFromPath } from './domain/routes.js';
 import { renderHome } from './pages/home.js';
 import { emptyState } from './ui/components.js';
-import { renderShell } from './ui/shell.js';
+import { renderShell, updateShell } from './ui/shell.js';
 import { renderLogin, renderRegister } from './pages/account.js';
 import { bindSlugSuggestion } from './ui/forms.js';
 import { createApi } from './data/api.js';
@@ -12,7 +12,7 @@ import { validateProfile, validateWork, validateEvent } from './domain/validatio
 import { renderWorksPage } from './pages/works.js';
 import { bindCollection } from './ui/collection-editor.js';
 import { renderAgenda } from './pages/agenda.js';
-import { renderCalendar } from './ui/calendar.js';
+import { bindCalendar } from './ui/calendar.js';
 import { renderEvents } from './ui/events.js';
 import { filterEvents } from './domain/collections.js';
 import { renderPortfolio } from './pages/portfolio.js';
@@ -134,19 +134,11 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  function updateSessionNavigation() {
-    app.querySelector('[data-private]').hidden = !state;
-    app.querySelector('[data-guest]').hidden = Boolean(state);
-    app.querySelector('[data-member]').hidden = !state;
-    const homeAccount = main.querySelector('[data-home-account]');
-    if (homeAccount) homeAccount.href = state ? '/painel' : '/cadastro';
-  }
-
   async function renderCurrentPage() {
     pageVersion++;
     const version = pageVersion;
     let route = routeFromPath(window.location.pathname);
-    updateSessionNavigation();
+    updateShell(app, state, route);
     if (privateRoutes.has(route) && !state) {
       if (!restored) { main.innerHTML = emptyState('Restaurando sessão…'); return; }
       window.history.replaceState(null, '', '/entrar');
@@ -182,7 +174,9 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         await go('/painel');
       });
     } else if (route === 'dashboard') {
-      main.innerHTML = renderDashboard(state, today());
+      const date = today();
+      main.innerHTML = renderDashboard(state, date);
+      bindCalendar(main.querySelector('[data-calendar]'), date, state.events);
       main.querySelector('[data-import]').addEventListener('click', () => run(async () => {
         const repository = createRepository(window.localStorage);
         const imported = await repository.importDraft(state, {
@@ -211,20 +205,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         validate: isAgenda ? validateEvent : validateWork,
         bindForm, save: saveDraft, refresh: renderCurrentPage, run });
       if (isAgenda) {
-        let [year, month] = today().split('-').map(Number);
-        month--;
-        const calendar = main.querySelector('[data-calendar]');
-        calendar.addEventListener('click', event => {
-          const day = event.target.closest('[data-day]');
-          const move = event.target.closest('[data-month]');
-          if (day) main.querySelector('[name="date"]').value = day.dataset.day;
-          if (move) {
-            month += Number(move.dataset.month);
-            if (month < 0) { year--; month = 11; }
-            if (month > 11) { year++; month = 0; }
-          }
-          calendar.innerHTML = renderCalendar(year, month, main.querySelector('[name="date"]').value);
-        });
+        bindCalendar(main.querySelector('[data-calendar]'), today(), state.events, main.querySelector('[name="date"]'));
         main.querySelector('[name="filter"]').addEventListener('input', event => {
           main.querySelector('[data-list]').innerHTML = renderEvents(filterEvents(state.events, event.target.value), true);
         });
@@ -333,7 +314,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     catch (error) { notice.textContent = error.message; }
     restored = true;
     // Não apaga campos digitados enquanto a sessão estava carregando.
-    updateSessionNavigation();
+    updateShell(app, state, routeFromPath(window.location.pathname));
     if (version === sessionVersion && privateRoutes.has(routeFromPath(window.location.pathname))) await renderCurrentPage();
     await initialRender;
   });

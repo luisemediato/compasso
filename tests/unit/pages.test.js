@@ -40,6 +40,9 @@ test('painel aumenta progresso conforme perfil e trabalhos são preenchidos', ()
   state.events = [concert];
   const doc = fragment(renderDashboard(state, '2030-01-01'));
   assert.equal(doc.querySelector('progress').value, 100);
+  const stats = [...doc.querySelectorAll('.stats dt')].map(term => [term.textContent, term.nextElementSibling.textContent]);
+  assert.deepEqual(stats, [['Próximas apresentações', '01'], ['Trabalhos no portfólio', '01'], ['Seu perfil', '100%']]);
+  assert.ok(doc.querySelector('a[href="/previa"]'));
   assert.match(doc.textContent, /Recital/);
 });
 

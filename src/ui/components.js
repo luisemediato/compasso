@@ -1,6 +1,11 @@
 import { escapeHtml } from '../domain/formatting.js';
 
 const paths = {
+  grid: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+  user: 'M20 21v-2a7 7 0 0 0-14 0v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
+  calendar: 'M4 5h16v16H4z M16 3v4 M8 3v4 M4 10h16 M8 14h2 M14 14h2 M8 18h2',
+  eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12 M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+  external: 'M14 3h7v7 M21 3l-11 11 M10 3H3v18h18v-7',
   arrow: 'M5 12h14 M13 6l6 6-6 6',
   music: 'M9 18V5l12-2v13 M9 8l12-2 M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
 };

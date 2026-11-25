@@ -4,7 +4,7 @@ import { renderCalendar } from '../ui/calendar.js';
 
 export function renderAgenda(events, today) {
   const [year, month] = today.split('-').map(Number);
-  return `<h2>Agenda</h2><div data-calendar>${renderCalendar(year, month - 1)}</div>
+  return `<h2>Agenda</h2><div data-calendar>${renderCalendar(year, month - 1, today, { events })}</div>
     <form method="post"><input type="hidden" name="id">
       ${field('title', 'Título', '', { required: true })}
       ${field('date', 'Data', today, { type: 'date', required: true })}

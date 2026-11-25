@@ -199,7 +199,7 @@ test('importação pede confirmação, salva legado e preserva publicação', as
   ctx.window.confirm = () => true;
   ctx.document.querySelector('[data-import]').click();
   await ctx.app.idle();
-  assert.match(ctx.document.querySelector('h2').textContent, /Legado/);
+  assert.match(ctx.document.querySelector('main h1')?.textContent, /Legado/);
   ctx.document.querySelector('a[href="/publicacao"]').click();
   await ctx.app.idle();
   assert.match(ctx.document.querySelector('main').textContent, /Portfólio publicado/);
@@ -249,7 +249,7 @@ test('sair limpa estado; nova entrada restaura apenas a segunda conta', async t 
     return current;
   });
   await ctx.app.ready;
-  assert.match(ctx.document.querySelector('h2').textContent, /Davi/);
+  assert.match(ctx.document.querySelector('main h1')?.textContent, /Davi/);
   ctx.document.querySelector('[data-logout]').click();
   await ctx.app.idle();
   ctx.window.history.pushState(null, '', '/painel');
@@ -258,7 +258,7 @@ test('sair limpa estado; nova entrada restaura apenas a segunda conta', async t 
   assert.equal(ctx.window.location.pathname, '/entrar');
   fill(ctx.window, { email: 'luis@example.com', password: 'Senha123!' });
   await submit(ctx);
-  assert.match(ctx.document.querySelector('h2').textContent, /Luís/);
+  assert.match(ctx.document.querySelector('main h1')?.textContent, /Luís/);
   assert.doesNotMatch(ctx.document.querySelector('main').textContent, /Davi/);
 });
 
@@ -483,4 +483,30 @@ test('resposta tardia da vitrine não altera a próxima página', async t => {
   await ctx.app.ready;
   assert.ok(ctx.document.querySelector('textarea[name="message"]'));
   assert.doesNotMatch(ctx.document.querySelector('main').textContent, /Artista atrasado/);
+});
+
+test('área do músico indica a seção ativa e separa o painel da prévia', async t => {
+  const saved = account('Davi');
+  const ctx = open(t, '/painel', async () => saved);
+  await ctx.app.ready;
+  const sidebar = ctx.document.querySelector('[data-private]');
+  const currentLink = () => sidebar.querySelector('[aria-current="page"]');
+  assert.equal(currentLink()?.pathname, '/painel');
+  const calendar = ctx.document.querySelector('[data-calendar]');
+  assert.ok(calendar, 'o painel deve mostrar o calendário do mês');
+  const month = calendar.querySelector('h3').textContent;
+  calendar.querySelector('[data-month="1"]').click();
+  assert.notEqual(calendar.querySelector('h3').textContent, month);
+  calendar.querySelector('[data-month="-1"]').click();
+  assert.equal(calendar.querySelector('h3').textContent, month);
+  sidebar.querySelector('a[href="/perfil"]').click();
+  await ctx.app.idle();
+  assert.equal(currentLink()?.pathname, '/perfil');
+  sidebar.querySelector('a[href="/previa"]').click();
+  await ctx.app.idle();
+  assert.equal(sidebar.hidden, true);
+  assert.equal(ctx.document.querySelector('main h1').textContent, 'Davi');
+  ctx.document.querySelector('[data-member] a[href="/painel"]').click();
+  await ctx.app.idle();
+  assert.equal(currentLink()?.pathname, '/painel');
 });
