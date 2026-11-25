@@ -100,11 +100,19 @@ async function login(request, db, body, ip) {
   return startSession(request, db, artist.id, 200);
 }
 
-async function getSession(request, db) {
+async function getPrivatePortfolio(request, db, download) {
   const artist = await activeArtist(db, request);
-  if (!artist) return json(null, 200);
+  if (!artist) {
+    if (download) return json({ error: 'Entre para exportar seu portfólio.' }, 401);
+    return json(null, 200);
+  }
 
-  return json(artistState(artist), 200);
+  const state = artistState(artist);
+  if (!download) return json(state, 200);
+  const { slug, profile, works, events, publication } = state;
+  return json({ slug, profile, works, events, publication }, 200, {
+    'Content-Disposition': 'attachment; filename="compasso-dados.json"',
+  });
 }
 
 function artistState(artist) {
@@ -247,12 +255,12 @@ async function listArtists(db, filters) {
 export async function api(request, db, ip = 'local') {
   const url = new URL(request.url);
 
-  if (url.pathname === '/api/session' || url.pathname === '/api/artists') {
+  if (['/api/session', '/api/artists', '/api/export'].includes(url.pathname)) {
     if (request.method !== 'GET') {
       return json({ error: 'Método indisponível.' }, 405, { Allow: 'GET' });
     }
     if (url.pathname === '/api/artists') return listArtists(db, url.searchParams);
-    return getSession(request, db);
+    return getPrivatePortfolio(request, db, url.pathname === '/api/export');
   }
 
   const handler = postRoutes.get(url.pathname);

@@ -24,6 +24,7 @@ export function renderPublication(state, origin = '') {
       <p>Publicar cria uma cópia do perfil, dos trabalhos e somente das apresentações públicas. Editar o rascunho não altera essa cópia.</p>
       <div class="actions">
         <button class="btn" type="button" data-publish aria-haspopup="dialog" aria-controls="confirmar-publicacao">${published ? 'Republicar' : 'Publicar'}</button>
+        <a class="btn light" href="/api/export" download="compasso-dados.json">Exportar meus dados</a>
         ${published ? `<a class="btn light" href="/${escapeHtml(state.slug)}">Abrir portfólio público</a>
           <button type="button" data-unpublish>Retirar publicação</button>` : ''}
       </div>
