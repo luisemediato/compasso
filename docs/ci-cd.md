@@ -27,3 +27,5 @@ npm run test:smoke -- https://compasso.compasso-ufmg-2026.workers.dev
 ```
 
 O teste consulta a home, o CSS, o JavaScript, a API de músicos e a rota `/explorar`. Para verificar o endereço de um músico, acrescente o caminho de um portfólio publicado como último argumento. No Actions, a variável `COMPASSO_REVISION` também exige que o SHA servido em `/version.json` corresponda ao commit do run. [Script de verificação](../scripts/smoke.js)
+
+[← Voltar ao README do Compasso](../README.md)
