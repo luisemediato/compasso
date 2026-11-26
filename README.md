@@ -4,6 +4,16 @@
 
 O `Compasso` é um projeto da disciplina de Teste de Software para músicos que querem reunir seus trabalhos e sua agenda em um portfólio público. Cada músico pode preparar um rascunho e escolher o que publicar. Os visitantes podem explorar os portfólios e consultar os eventos públicos.
 
+## Links da entrega
+
+| Item | Link |
+| --- | --- |
+| Sistema em produção | [Abrir o Compasso](https://compasso.compasso-ufmg-2026.workers.dev) |
+| Código-fonte | [Repositório no GitHub](https://github.com/luisemediato/compasso) |
+| Build no GitHub Actions | [Execução aprovada da versão 0.3.0 (#117)](https://github.com/luisemediato/compasso/actions/runs/45784638486) · [Histórico de execuções](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) |
+| Cobertura de testes | [Relatório do Compasso no Codecov](https://app.codecov.io/gh/luisemediato/compasso) |
+| Vídeo de apresentação | Aguardando publicação no YouTube. |
+
 ## Integrantes
 
 - Luís Henrique Emediato
@@ -47,7 +57,7 @@ Execute os comandos na raiz do repositório. As suítes abaixo rodam no terminal
 | `npm run test:e2e:parallel` | Os mesmos 12 fluxos com quatro workers. |
 | `npm run test:smoke -- https://URL-PUBLICA` | Verificação de leitura da aplicação publicada, sem criar contas ou mensagens. |
 
-O GitHub Actions executa as verificações em Linux, Windows e macOS. A cobertura considera os arquivos JavaScript de `src/` e `server/`. No terminal, a coluna `% Lines` indica a porcentagem de linhas executadas pelos testes. Para consultar os resultados de uma versão, abra a [execução no GitHub Actions](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) e o [relatório no Codecov](https://app.codecov.io/gh/luisemediato/compasso) referentes ao mesmo commit.
+O GitHub Actions executa as verificações em Linux, Windows e macOS. A cobertura considera os arquivos JavaScript de `src/` e `server/`. No terminal, a coluna `% Lines` indica a porcentagem de linhas executadas pelos testes. Para consultar os resultados de uma versão, abra a [lista de execuções no GitHub Actions](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) e o [relatório no Codecov](https://app.codecov.io/gh/luisemediato/compasso) referentes ao mesmo commit.
 
 Antes do primeiro E2E, execute `npx playwright install chromium` (no Linux, use `npx playwright install --with-deps chromium`). O Playwright faz o build, inicia o servidor na porta **4183** e cria um SQLite **em memória**, separado de `.local/compasso.sqlite`. Deixe essa porta livre. Cada teste usa uma identidade própria; os testes de publicação abrem um segundo contexto sem sessão. Os 12 cenários cobrem cadastro/login, perfil, criar/editar/excluir apresentação, trabalho na prévia, caminhos da home, edição privada após publicar, retirada, acesso direto com republicação, contato e exportação do portfólio.
 
@@ -59,7 +69,7 @@ Na home, **Descobrir músicos** abre a busca e **Organizar meu espaço** leva ao
 
 Salvar altera o rascunho. **Publicar/Republicar** atualiza a cópia visível pelo endereço `/<slug>`; **Retirar publicação** remove essa cópia e conserva o rascunho. Eventos novos são privados por padrão; eventos antigos sem visibilidade também continuam privados. Só eventos marcados como públicos entram na publicação. A agenda do portfólio mostra os públicos de hoje em diante. Na página Publicação, o músico confere o endereço antes de confirmar e pode exportar seu rascunho e a versão publicada em JSON.
 
-Se outra aba salvar primeiro, a tela preserva os campos e oferece **Recarregar rascunho**, com confirmação de descarte. O painel também permite importar um rascunho legado deste navegador após confirmação; isso não altera a publicação existente. O rodapé abre **Fale com a equipe** e só confirma recebimento depois da resposta de gravação do servidor.
+Se outra aba salvar primeiro, a tela preserva os campos e oferece **Recarregar rascunho**, com confirmação de descarte. O painel também permite importar um rascunho legado deste navegador após confirmação; isso não altera a publicação existente. Nas páginas públicas, o link **Fale com a equipe** no rodapé abre o formulário de contato. O formulário confirma o envio depois que o servidor grava a mensagem. No painel do músico, o rodapé oferece o link **Voltar ao início**.
 
 ### Hospedagem e verificação pública
 
