@@ -186,3 +186,36 @@ test('link direto e HEAD acompanham publicação e retirada sem exigir sessão',
   assert.equal(retirado.status, 404);
   assert.equal(await retirado.text(), '');
 });
+
+test('exportação requer sessão e baixa somente o portfólio da conta que fez o pedido', async t => {
+  const db = banco(t);
+  const ana = await conta(db);
+  const bia = await conta(db, 'bia');
+  const anonima = await chamar(db, 'export', '');
+  assert.equal(anonima.status, 401);
+  assert.equal(anonima.headers.get('Content-Disposition'), null);
+  const method = await ana('export', {});
+  assert.equal(method.status, 405);
+  assert.equal(method.headers.get('Allow'), 'GET');
+
+  async function conferir(pedido, estado) {
+    const resposta = await pedido('export');
+    assert.equal(resposta.headers.get('Content-Disposition'), 'attachment; filename="compasso-dados.json"');
+    assert.match(resposta.headers.get('Content-Type'), /application\/json/);
+    assert.equal(resposta.headers.get('Cache-Control'), 'no-store');
+    const { slug, profile, works, events, publication } = estado;
+    assert.deepEqual(await sucesso(resposta), { slug, profile, works, events, publication });
+    assert.deepEqual(await sucesso(await pedido('session')), estado);
+  }
+  const rascunho = await preparar(ana);
+  await conferir(ana, rascunho);
+  const publicada = await sucesso(await ana('publish', versao(rascunho)));
+  const editada = await sucesso(await ana('draft', { ...publicada, works: [
+    { id: 'w1', title: 'Gravação inédita', url: 'https://example.org/ensaio' },
+  ] }));
+  await conferir(ana, editada);
+  await conferir(bia, await sucesso(await bia('session')));
+  assert.deepEqual(await sucesso(await chamar(db, 'artists', '')), [publicada.publication]);
+  await sucesso(await ana('logout', {}));
+  assert.equal((await ana('export')).status, 401);
+});

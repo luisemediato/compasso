@@ -20,7 +20,7 @@ test('abrir Explorar e voltar pelo histórico restaura a home', async (t) => {
   explorar.click();
 
   assert.equal(window.location.pathname, '/explorar');
-  assert.equal(document.querySelector('main h2').textContent, 'Explorar');
+  assert.equal(document.querySelector('main h1')?.textContent, 'Encontre sua próxima escuta.');
 
   const voltou = new Promise(resolve => {
     window.addEventListener('popstate', resolve, { once: true });
@@ -41,6 +41,6 @@ test('abrir Explorar e voltar pelo histórico restaura a home', async (t) => {
   assert.equal(window.location.pathname, '/explorar');
   assert.match(
     document.querySelector('main').textContent,
-    /Explorar/
+    /Encontre sua próxima escuta/
   );
 });

@@ -1,7 +1,8 @@
+import { localDate } from './domain/formatting.js';
 import { routeFromPath } from './domain/routes.js';
 import { renderHome } from './pages/home.js';
 import { emptyState } from './ui/components.js';
-import { renderShell } from './ui/shell.js';
+import { pageTitle, renderShell, updateShell } from './ui/shell.js';
 import { renderLogin, renderRegister } from './pages/account.js';
 import { bindSlugSuggestion } from './ui/forms.js';
 import { createApi } from './data/api.js';
@@ -12,13 +13,13 @@ import { validateProfile, validateWork, validateEvent } from './domain/validatio
 import { renderWorksPage } from './pages/works.js';
 import { bindCollection } from './ui/collection-editor.js';
 import { renderAgenda } from './pages/agenda.js';
-import { renderCalendar } from './ui/calendar.js';
+import { bindCalendar } from './ui/calendar.js';
 import { renderEvents } from './ui/events.js';
 import { filterEvents } from './domain/collections.js';
 import { renderPortfolio } from './pages/portfolio.js';
 import { renderPublication } from './pages/publication.js';
 import { renderContact } from './pages/contact.js';
-import { renderArtistList, renderExplore } from './pages/explore.js';
+import { bindArtistSearch, renderArtistList, renderExplore } from './pages/explore.js';
 import { seed } from './data/seed.js';
 import { createRepository } from './data/repository.js';
 
@@ -32,6 +33,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
   let state = null;
   let restored = false;
   let pageVersion = 0;
+  let renderedPath;
   let pending = Promise.resolve();
   let sessionVersion = 0;
 
@@ -40,8 +42,8 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     return pending;
   }
 
-  function reportError(error) {
-    notice.textContent = error.message;
+  function reportError(error, target = notice) {
+    target.textContent = error.message;
     if (error.status === 409 && state) {
       const reload = window.document.createElement('button');
       reload.type = 'button';
@@ -55,7 +57,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
           await renderCurrentPage();
         });
       });
-      notice.append(reload);
+      target.append(reload);
     }
   }
 
@@ -71,14 +73,17 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     target.focus();
     function mark(name) {
       const field = form.elements.namedItem(name);
-      field?.setAttribute('aria-invalid', 'true');
-      field?.setAttribute('aria-describedby', target.id);
+      if (!field) return;
+      field.setAttribute('aria-invalid', 'true');
+      const descriptions = new Set((field.getAttribute('aria-describedby') || '').split(' ').filter(Boolean));
+      descriptions.add(target.id);
+      field.setAttribute('aria-describedby', [...descriptions].join(' '));
     }
     // O servidor não distingue a colisão de e-mail da colisão de slug.
     if (error.status === 409 && form.elements.namedItem('slug')) {
       for (const name of ['email', 'slug']) mark(name);
     }
-    if (error.status === 409 && state) reportError(error);
+    if (error.status === 409 && state) reportError(error, form.closest('dialog') ? target : notice);
     const fields = { 'nome artístico': 'name', instrumento: 'instrument', trajetória: 'bio', Instagram: 'instagram', senha: 'password', endereço: 'slug', 'e-mail': 'email', título: 'title', horário: 'time', data: 'date', local: 'venue', link: 'url' };
     for (const [word, name] of Object.entries(fields)) {
       if (error.message.includes(word)) mark(name);
@@ -93,15 +98,25 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       const button = form.querySelector('[type="submit"]');
       if (button.disabled) return;
       button.disabled = true;
+      const cancel = form.querySelector('[data-cancel]');
+      if (cancel) cancel.disabled = true;
       notice.textContent = '';
       form.querySelector('[data-error]').textContent = '';
-      form.querySelectorAll('[aria-invalid]').forEach(field => field.removeAttribute('aria-invalid'));
+      for (const field of form.querySelectorAll('[aria-invalid]')) {
+        field.removeAttribute('aria-invalid');
+        const help = field.getAttribute('aria-describedby').split(' ').filter(id => id !== 'form-feedback').join(' ');
+        if (help) field.setAttribute('aria-describedby', help);
+        else field.removeAttribute('aria-describedby');
+      }
       run(async () => {
         try {
           await handler(Object.fromEntries(new window.FormData(form)), () => version === pageVersion);
         } catch (error) {
           if (version === pageVersion) showError(form, error);
-        } finally { button.disabled = false; }
+        } finally {
+          button.disabled = false;
+          if (cancel) cancel.disabled = false;
+        }
       });
     });
   }
@@ -128,23 +143,42 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     }
   }
 
-  function today() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function scrollToSection(hash, smooth = false) {
+    if (!hash.startsWith('#portfolio-')) return false;
+    const section = window.document.getElementById(hash.slice(1));
+    if (!section) return false;
+    section.tabIndex = -1;
+    section.focus({ preventScroll: true });
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView?.({ behavior: smooth && !reduce ? 'smooth' : 'instant' });
+    return true;
   }
 
   async function renderCurrentPage() {
     pageVersion++;
     const version = pageVersion;
     let route = routeFromPath(window.location.pathname);
-    app.querySelector('[data-private]').hidden = !state;
+    updateShell(app, state, route);
     if (privateRoutes.has(route) && !state) {
       if (!restored) { main.innerHTML = emptyState('Restaurando sessão…'); return; }
       window.history.replaceState(null, '', '/entrar');
       route = 'login';
     }
-    if (route === 'home') main.innerHTML = renderHome();
-    else if (route === 'register' || route === 'login') {
+    renderedPath = window.location.pathname;
+    main.dataset.view = route;
+    window.document.title = pageTitle(route);
+    app.classList.toggle('portfolio-page', route === 'preview');
+    if (route === 'home') {
+      main.innerHTML = renderHome(Boolean(state));
+      // O destino pertence a esta renderização, mesmo se o visitante navegar durante a leitura.
+      const featured = main.querySelector('[data-featured]');
+      try {
+        const artists = await api('/api/artists');
+        featured.innerHTML = renderArtistList(artists.slice(0, 3), 'Ainda não há portfólios publicados.');
+      } catch {
+        featured.textContent = 'Não foi possível carregar os músicos. Tente novamente em instantes.';
+      }
+    } else if (route === 'register' || route === 'login') {
       main.innerHTML = route === 'register' ? renderRegister() : renderLogin();
       if (route === 'register') bindSlugSuggestion(main.querySelector('form'));
       bindForm(async (data, current) => {
@@ -161,9 +195,13 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         await go('/painel');
       });
     } else if (route === 'dashboard') {
-      main.innerHTML = renderDashboard(state, today());
-      main.querySelector('[data-import]').addEventListener('click', () => run(async () => {
-        const repository = createRepository(window.localStorage);
+      const date = localDate();
+      main.innerHTML = renderDashboard(state, date);
+      bindCalendar(main.querySelector('[data-calendar]'), date, state.events);
+      const importButton = main.querySelector('[data-import]');
+      const repository = createRepository(window.localStorage);
+      importButton.hidden = !repository.load().source;
+      importButton.addEventListener('click', () => run(async () => {
         const imported = await repository.importDraft(state, {
           confirm: message => window.confirm(message),
           save: body => mutate('/api/draft', body),
@@ -184,74 +222,84 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       });
     } else if (route === 'works' || route === 'agenda') {
       const isAgenda = route === 'agenda';
-      main.innerHTML = isAgenda ? renderAgenda(state.events, today()) : renderWorksPage(state.works);
+      main.innerHTML = isAgenda ? renderAgenda(state.events, localDate()) : renderWorksPage(state.works);
       const collection = isAgenda ? 'events' : 'works';
       bindCollection({ main, window, collection, getItems: () => state[collection],
         validate: isAgenda ? validateEvent : validateWork,
         bindForm, save: saveDraft, refresh: renderCurrentPage, run });
       if (isAgenda) {
-        let [year, month] = today().split('-').map(Number);
-        month--;
-        const calendar = main.querySelector('[data-calendar]');
-        calendar.addEventListener('click', event => {
-          const day = event.target.closest('[data-day]');
-          const move = event.target.closest('[data-month]');
-          if (day) main.querySelector('[name="date"]').value = day.dataset.day;
-          if (move) {
-            month += Number(move.dataset.month);
-            if (month < 0) { year--; month = 11; }
-            if (month > 11) { year++; month = 0; }
-          }
-          calendar.innerHTML = renderCalendar(year, month, main.querySelector('[name="date"]').value);
-        });
-        main.querySelector('[name="filter"]').addEventListener('input', event => {
-          main.querySelector('[data-list]').innerHTML = renderEvents(filterEvents(state.events, event.target.value), true);
+        bindCalendar(main.querySelector('[data-calendar]'), localDate(), state.events, main.querySelector('[name="date"]'));
+        const filters = main.querySelector('[data-agenda-filter]');
+        filters.addEventListener('input', () => {
+          const period = filters.querySelector('[name="period"]:checked').value;
+          const date = localDate();
+          let events = filterEvents(state.events, filters.querySelector('[name="filter"]').value);
+          if (period === 'upcoming') events = events.filter(event => event.date >= date);
+          if (period === 'past') events = events.filter(event => event.date < date);
+          main.querySelector('[data-list]').innerHTML = renderEvents(events, true, { newestFirst: period === 'past' });
         });
       }
-    } else if (route === 'preview') main.innerHTML = renderPortfolio(state, true);
-    else if (route === 'publication') {
-      main.innerHTML = renderPublication(state);
-      for (const action of ['publish', 'unpublish']) {
-        main.querySelector(`[data-${action}]`)?.addEventListener('click', event => {
-          const button = event.currentTarget;
-          if (button.disabled || (action === 'unpublish' && !window.confirm('Retirar o portfólio público? Seu rascunho será preservado.'))) return;
-          button.disabled = true;
-          run(async () => {
-            try {
-              const { id, revision } = state;
-              await mutate(`/api/${action}`, { id, revision });
-              if (version !== pageVersion) return;
-              notice.textContent = action === 'publish' ? 'Portfólio publicado.' : 'Publicação retirada.';
-              await renderCurrentPage();
-            } finally { button.disabled = false; }
-          });
-        });
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('novo') === '1') {
+        url.searchParams.delete('novo');
+        window.history.replaceState(null, '', url);
+        main.querySelector('[data-new]').click();
       }
+    } else if (route === 'preview') {
+      main.innerHTML = renderPortfolio(state, true);
+      scrollToSection(window.location.hash);
+    } else if (route === 'publication') {
+      main.innerHTML = renderPublication(state, window.location.origin);
+      const dialog = main.querySelector('#confirmar-publicacao');
+      const publish = main.querySelector('[data-publish]');
+      const unpublish = main.querySelector('[data-unpublish]');
+      async function changePublication(action) {
+        const { id, revision } = state;
+        await mutate(`/api/${action}`, { id, revision });
+        if (version !== pageVersion) return;
+        notice.textContent = action === 'publish' ? 'Portfólio publicado.' : 'Publicação retirada.';
+        await renderCurrentPage();
+        main.querySelector('[data-publish]')?.focus();
+      }
+
+      publish.addEventListener('click', () => dialog.showModal());
+      dialog.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('cancel', event => {
+        if (dialog.querySelector('[type="submit"]').disabled) event.preventDefault();
+      });
+      bindForm(() => changePublication('publish'));
+
+      unpublish?.addEventListener('click', () => {
+        if (unpublish.disabled || !window.confirm('Retirar o portfólio público? Seu rascunho será preservado.')) return;
+        unpublish.disabled = publish.disabled = true;
+        run(async () => {
+          try { await changePublication('unpublish'); }
+          finally { unpublish.disabled = publish.disabled = false; }
+        });
+      });
     } else if (route === 'contact') {
       main.innerHTML = renderContact();
+      const home = main.querySelector('[data-contact-home]');
       bindForm(async (data, current) => {
+        home.hidden = true;
         await api('/api/contact', data);
         if (current()) {
           main.querySelector('form').reset();
           main.querySelector('[data-error]').textContent = '';
           notice.textContent = 'Mensagem recebida pela equipe.';
+          home.hidden = false;
         }
       });
     } else if (route === 'explore') {
       main.innerHTML = renderExplore();
-      let searchVersion = 0;
-      main.querySelector('[data-demo]').addEventListener('click', () => {
-        main.querySelector('[data-demo-content]').innerHTML = renderPortfolio(seed);
+      main.querySelector('[data-demo]').addEventListener('click', ({ currentTarget: button }) => {
+        const demo = main.querySelector('[data-demo-content]');
+        if (!demo.hasChildNodes()) demo.innerHTML = renderPortfolio(seed, false, true);
+        demo.hidden = !demo.hidden;
+        button.setAttribute('aria-expanded', String(!demo.hidden));
+        button.textContent = demo.hidden ? 'Ver perfil de demonstração' : 'Ocultar demonstração';
       });
-      const search = async (query = {}) => {
-        const requestVersion = ++searchVersion;
-        const artists = await api('/api/artists?' + new URLSearchParams(query));
-        if (version === pageVersion && requestVersion === searchVersion) main.querySelector('[data-results]').innerHTML = renderArtistList(artists);
-      };
-      bindForm(search);
-      try { await search(); } catch (error) {
-        if (version === pageVersion) main.querySelector('[data-results]').textContent = error.message;
-      }
+      await bindArtistSearch(main, { api, window, run });
     } else if (route?.startsWith('artist/')) {
       main.innerHTML = emptyState('Carregando portfólio…');
       try {
@@ -259,6 +307,9 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
         if (version !== pageVersion) return;
         const artist = artists.find(item => item.slug === route.slice(7));
         main.innerHTML = artist ? renderPortfolio(artist) : emptyState('Portfólio não encontrado.');
+        app.classList.toggle('portfolio-page', Boolean(artist));
+        window.document.title = (artist ? artist.profile.name : 'Portfólio não encontrado') + ' | Compasso';
+        if (artist) scrollToSection(window.location.hash);
       } catch (error) {
         if (version === pageVersion) main.innerHTML = emptyState(error.message);
       }
@@ -276,16 +327,30 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
 
   app.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const details = event.target.closest?.('[data-event-details]');
+    if (details) {
+      details.nextElementSibling.showModal();
+      return;
+    }
     const link = event.target.closest?.('a[href]');
     if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
     const url = new URL(link.href);
-    if (url.origin !== window.location.origin || url.hash) return;
+    if (url.origin !== window.location.origin) return;
+    if (url.hash) {
+      if (url.pathname === window.location.pathname && url.search === window.location.search && scrollToSection(url.hash, true)) {
+        event.preventDefault();
+        if (window.location.hash) window.history.replaceState(null, '', url.pathname + url.search);
+      }
+      return;
+    }
     event.preventDefault();
     if (url.href !== window.location.href) window.history.pushState(null, '', url.href);
     run(renderCurrentPage);
     main.focus();
   });
-  window.addEventListener('popstate', () => run(renderCurrentPage));
+  window.addEventListener('popstate', () => {
+    if (window.location.pathname !== renderedPath) run(renderCurrentPage);
+  });
   const initialRender = renderCurrentPage();
   const ready = run(async () => {
     const version = sessionVersion;
@@ -296,7 +361,7 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
     catch (error) { notice.textContent = error.message; }
     restored = true;
     // Não apaga campos digitados enquanto a sessão estava carregando.
-    app.querySelector('[data-private]').hidden = !state;
+    updateShell(app, state, routeFromPath(window.location.pathname));
     if (version === sessionVersion && privateRoutes.has(routeFromPath(window.location.pathname))) await renderCurrentPage();
     await initialRender;
   });

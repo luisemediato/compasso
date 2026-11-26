@@ -1,12 +1,19 @@
 export { draftError } from './draft.js';
 import { hasEmailFormat, isValidSlug } from './validation.js';
+export const MIN_PASSWORD_LENGTH = 9;
+export const MAX_PASSWORD_LENGTH = 128;
+export const MAX_SLUG_LENGTH = 60;
+
 export function suggestSlug(artistName) {
-  return artistName
-    .normalize('NFD')
+  const slug = artistName.normalize('NFD')
     .replace(/\p{M}+/gu, '')
     .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-');
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, MAX_SLUG_LENGTH)
+    .replace(/-$/, '');
+  if (!slug || isValidSlug(slug)) return slug;
+  return slug + '-musica';
 }
 
 function isValidName(value) {
@@ -26,14 +33,14 @@ export function accountError({ fullName, name, email, password, slug } = {}) {
 
   if (
     typeof password !== 'string'
-    || password.length < 8
-    || password.length > 128
+    || password.length < MIN_PASSWORD_LENGTH
+    || password.length > MAX_PASSWORD_LENGTH
     || !/[\p{P}\p{S}]/u.test(password)
   ) {
-    return 'Use uma senha de 8 a 128 caracteres com pelo menos um caractere especial.';
+    return `Use uma senha de ${MIN_PASSWORD_LENGTH} a ${MAX_PASSWORD_LENGTH} caracteres com pelo menos um caractere especial.`;
   }
 
-  if (!isValidSlug(slug) || slug.length > 60) {
+  if (!isValidSlug(slug) || slug.length > MAX_SLUG_LENGTH) {
     return 'Escolha outro endereço, com até 60 letras minúsculas, números e hífens.';
   }
 

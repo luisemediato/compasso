@@ -33,11 +33,11 @@ const contaValida = {
   fullName: 'João da Silva',
   name: 'João Viola',
   email: 'joao@example.com',
-  password: 'abcdefg!',
+  password: 'abcdefgh!',
   slug: 'joao-viola',
 };
 
-test('aceita cadastro completo com senha de 8 caracteres e um símbolo', () => {
+test('aceita cadastro completo com senha de 9 caracteres e um símbolo', () => {
   assert.equal(accountError(contaValida), '');
 });
 
@@ -62,8 +62,8 @@ test('recusa e-mail inválido e endereço de portfólio reservado', () => {
   assert.match(accountError({ ...contaValida, slug: 'cadastro' }), /endereço/i);
 });
 
-test('recusa senhas com 7 ou 129 caracteres e aceita com 128', () => {
-  for (const tamanho of [7, 129]) {
+test('recusa senhas com 8 ou 129 caracteres e aceita com 128', () => {
+  for (const tamanho of [7, 8, 129]) {
     const password = 'a'.repeat(tamanho - 1) + '!';
     assert.match(accountError({ ...contaValida, password }), /senha/i);
   }
@@ -73,7 +73,7 @@ test('recusa senhas com 7 ou 129 caracteres e aceita com 128', () => {
 });
 
 test('exige pelo menos um sinal de pontuação ou símbolo na senha', () => {
-  for (const password of ['abcdefgh', 'abcdefg1', 'abcdefg ', 'abcdefgé']) {
+  for (const password of ['abcdefghi', 'abcdefgh1', 'abcdefgh ', 'abcdefghé']) {
     assert.match(accountError({ ...contaValida, password }), /senha/i);
   }
 });
@@ -92,4 +92,13 @@ test('inicia rascunho com o nome artístico e contato público vazio', () => {
     events: [],
     works: [],
   });
+});
+
+test('sugestão reduz pontuação e acentos, respeita 60 caracteres e contorna rotas reservadas', () => {
+  assert.equal(suggestSlug('  Ána & Bia!!! '), 'ana-bia');
+  assert.equal(suggestSlug('João—Silva'), 'joao-silva');
+  assert.equal(suggestSlug('!?!'), '');
+  const long = suggestSlug('a'.repeat(59) + ' — Bia');
+  assert.equal(long, 'a'.repeat(59));
+  assert.ok(isValidSlug(suggestSlug('Agenda')));
 });

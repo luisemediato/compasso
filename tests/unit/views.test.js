@@ -5,17 +5,10 @@ import { renderHome } from '../../src/pages/home.js';
 
 test('a home oferece descoberta para visitantes e acesso para músicos', () => {
   const { document } = new JSDOM(renderHome()).window;
-  const links = [...document.querySelectorAll('a[href]')];
-
-  const acoes = [
-    ['Explorar', '/explorar'],
-    ['Entrar', '/entrar'],
-    ['Cadastrar', '/cadastro'],
-  ];
-
-  for (const [nome, destino] of acoes) {
-    const link = links.find((item) => item.textContent.trim() === nome);
-    assert.ok(link, `a home deve exibir o link "${nome}"`);
-    assert.equal(link.getAttribute('href'), destino);
-  }
+  const hero = document.querySelector('section[aria-labelledby="titulo-inicio"]');
+  assert.match(hero?.querySelector('h1')?.textContent ?? '', /Seu talento merece/);
+  assert.equal(hero.querySelector('a[href="/explorar"]').textContent.trim(), 'Descobrir músicos');
+  assert.equal(hero.querySelector('a[href="/cadastro"]').textContent.trim(), 'Organizar meu espaço');
+  assert.ok(hero.querySelector('img[alt]').alt.trim());
+  assert.equal(document.querySelector('#titulo-vitrine')?.textContent, 'Conheça novos sons');
 });
