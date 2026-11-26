@@ -198,8 +198,10 @@ export function startApp(window, { api = createApi(window.fetch?.bind(window)) }
       const date = localDate();
       main.innerHTML = renderDashboard(state, date);
       bindCalendar(main.querySelector('[data-calendar]'), date, state.events);
-      main.querySelector('[data-import]').addEventListener('click', () => run(async () => {
-        const repository = createRepository(window.localStorage);
+      const importButton = main.querySelector('[data-import]');
+      const repository = createRepository(window.localStorage);
+      importButton.hidden = !repository.load().source;
+      importButton.addEventListener('click', () => run(async () => {
         const imported = await repository.importDraft(state, {
           confirm: message => window.confirm(message),
           save: body => mutate('/api/draft', body),

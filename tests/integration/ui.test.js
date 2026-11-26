@@ -605,8 +605,7 @@ test('área do músico indica a seção ativa e separa o painel da prévia', asy
   sidebar.querySelector('a[href="/perfil"]').click();
   await ctx.app.idle();
   assert.equal(currentLink()?.pathname, '/perfil');
-  sidebar.querySelector('a[href="/previa"]').click();
-  await ctx.app.idle();
+  ctx.document.querySelector('header a[aria-label="Visualizar prévia"]').click();  await ctx.app.idle();
   assert.equal(sidebar.hidden, true);
   assert.equal(ctx.document.querySelector('main h1').textContent, 'Davi');
   ctx.document.querySelector('[data-member] a[href="/painel"]').click();

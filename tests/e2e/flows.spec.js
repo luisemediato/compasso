@@ -50,7 +50,7 @@ test('30 · exclui após confirmação e continua ausente na recarga', async ({ 
 });
 
 test('32 · adiciona trabalho e encontra na prévia', async ({ page, artist }) => {
-  await page.getByRole('link', { name: 'Trabalhos', exact: true }).click();
+  await page.getByRole('link', { name: 'Meus trabalhos', exact: true }).click();
   const addWork = page.getByRole('button', { name: 'Adicionar trabalho', exact: true });
   await addWork.click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -63,7 +63,7 @@ test('32 · adiciona trabalho e encontra na prévia', async ({ page, artist }) =
   await page.getByRole('combobox', { name: 'Categoria', exact: true }).selectOption('Projeto');
   await page.getByRole('button', { name: 'Salvar trabalho' }).click();
   await expect(page.getByRole('heading', { name: 'Gravação ' + artist.name })).toBeVisible();
-  await page.getByRole('link', { name: 'Prévia', exact: true }).click();
+  await page.getByRole('link', { name: 'Visualizar prévia', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Gravação ' + artist.name })).toBeVisible();
   const cover = page.getByRole('link', { name: 'Abrir Gravação ' + artist.name, exact: true });
   await expect(cover).toHaveAttribute('href', 'https://example.com/gravacao');
@@ -98,7 +98,7 @@ test('36/44 · home separa público e músico, teclado e tela estreita', async (
   await page.goBack();
   await expect(page.getByRole('heading', { name: /Seu talento merece/ })).toBeVisible();
   await register(page, identity);
-  await page.getByRole('link', { name: 'Agenda', exact: true }).focus();
+  await page.getByRole('link', { name: 'Minha agenda', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Nova apresentação', exact: true }).click();
@@ -112,7 +112,7 @@ test('34 · editar rascunho mantém a versão vista pelo visitante', async ({ pa
   await profile(page, artist.name);
   await publish(page);
   await profile(page, 'Nome ainda privado');
-  await page.getByRole('link', { name: 'Publicação', exact: true }).click();
+  await page.getByRole('link', { name: 'Meu portfólio', exact: true }).click();
   const oldTime = await page.locator('.publication-panel time').getAttribute('datetime');
   const republish = page.getByRole('button', { name: 'Republicar' });
   await republish.click();
@@ -152,7 +152,7 @@ test('40 · acesso direto, republicação e privacidade da agenda', async ({ pag
   await event(page, 'Concerto público', 'public', {
     description: 'Quarteto de cordas', ticket: 'https://example.org/ingressos',
   });
-  await page.getByRole('link', { name: 'Prévia', exact: true }).click();
+  await page.getByRole('link', { name: 'Visualizar prévia', exact: true }).click();
   const titles = view => view.locator('#portfolio-agenda .event-info h3');
   await expect(titles(page)).toHaveText(['Concerto público', 'Próximo recital']);
   await page.getByRole('link', { name: 'Revisar publicação' }).click();
@@ -173,7 +173,7 @@ test('40 · acesso direto, republicação e privacidade da agenda', async ({ pag
   await expect(visitor).toHaveURL('http://127.0.0.1:4183/' + artist.slug);
   await expect(visitor.getByRole('heading', { name: 'Vamos conversar?' })).toBeInViewport();
   await expect(visitor.getByRole('link', { name: 'Instagram', exact: true })).toHaveAttribute('href', 'https://www.instagram.com/davi/');
-  await page.getByRole('link', { name: 'Agenda', exact: true }).click();
+  await page.getByRole('link', { name: 'Minha agenda', exact: true }).click();
   await page.getByRole('button', { name: 'Editar Concerto público', exact: true }).click();
   await page.getByLabel('Descrição').fill('Alteração só no rascunho');
   await page.getByLabel('Visibilidade').selectOption('private');
@@ -190,7 +190,7 @@ test('40 · acesso direto, republicação e privacidade da agenda', async ({ pag
   await publish(page);
   await visitor.reload();
   await expect(titles(visitor)).toHaveText(['Próximo recital']);
-  await page.getByRole('link', { name: 'Agenda', exact: true }).click();
+  await page.getByRole('link', { name: 'Minha agenda', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Concerto público' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ensaio privado' })).toBeVisible();
 });
@@ -213,7 +213,7 @@ test('38 · contato confirma recebimento somente após resposta de gravação', 
 test('exporta o JSON antes e depois da publicação sem alterar o rascunho', async ({ page, artist }) => {
   await profile(page, artist.name);
   await event(page, 'Ensaio reservado');
-  await page.getByRole('link', { name: 'Publicação', exact: true }).click();
+  await page.getByRole('link', { name: 'Meu portfólio', exact: true }).click();
   async function downloadPortfolio() {
     const ready = page.waitForEvent('download');
     await page.getByRole('link', { name: 'Exportar meus dados' }).click();

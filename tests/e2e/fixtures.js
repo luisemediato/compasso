@@ -30,7 +30,7 @@ export async function register(page, identity) {
 }
 
 export async function profile(page, name) {
-  await page.getByRole('link', { name: 'Perfil', exact: true }).click();
+  await page.getByRole('link', { name: 'Meu perfil', exact: true }).click();
   if (name) await page.getByLabel('Nome artístico', { exact: true }).fill(name);
   await page.getByLabel('Instrumento', { exact: true }).fill('Viola');
   await page.getByLabel('Instagram (usuário ou link)').fill('@davi');
@@ -40,7 +40,7 @@ export async function profile(page, name) {
 
 export async function event(page, title = 'Concerto de teste', visibility = 'private', options = {}) {
   const { date = '2030-06-15', time = '19:30', description, ticket } = options;
-  await page.getByRole('link', { name: 'Agenda', exact: true }).click();
+  await page.getByRole('link', { name: 'Minha agenda', exact: true }).click();
   await page.getByRole('button', { name: 'Nova apresentação', exact: true }).click();
   await page.getByLabel('Título', { exact: true }).fill(title);
   await page.getByLabel('Data', { exact: true }).fill(date);
@@ -54,7 +54,7 @@ export async function event(page, title = 'Concerto de teste', visibility = 'pri
 }
 
 export async function publish(page) {
-  await page.getByRole('link', { name: 'Publicação', exact: true }).click();
+  await page.getByRole('link', { name: 'Meu portfólio', exact: true }).click();
   await page.getByRole('button', { name: /^(Publicar|Republicar)$/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmar publicação' }).click();
   await expect(page.getByText('Sem alterações pendentes.')).toBeVisible();

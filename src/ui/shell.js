@@ -33,14 +33,26 @@ export function pageTitle(route) {
 function sidebar(state, route) {
   const profile = state.profile;
   const count = upcoming(state.events, localDate()).length;
-  const links = Object.entries(workspacePages).map(([page, [label, symbol]]) => `
+  const menu = [
+    ['dashboard', 'Visão geral', 'grid'],
+    ['profile', 'Meu perfil', 'user'],
+    ['works', 'Meus trabalhos', 'music'],
+    ['agenda', 'Minha agenda', 'calendar'],
+    ['publication', 'Meu portfólio', 'eye'],
+  ];
+  const links = menu.map(([page, label, symbol]) => `
     <a href="${pathFromRoute(page)}" aria-label="${label}" title="${label}" ${page === 'agenda' ? `aria-description="Apresentações de hoje em diante: ${count}"` : ''} ${page === route ? 'aria-current="page"' : ''}>
       ${icon(symbol)}<span>${label}</span>${page === 'agenda' ? `<span class="nav-count" aria-hidden="true">${count}</span>` : ''}
     </a>`).join('');
   return `${brand()}<p class="sidebar-label">Meu espaço</p>
     <nav class="side-nav" aria-label="Área do músico">${links}</nav>
     <div class="side-bottom">
-      <a class="side-explore" href="/explorar">Explorar músicos ${icon('arrow')}</a>
+      <div class="side-discovery">
+        <span class="side-spark" aria-hidden="true">✧</span>
+        <strong>O próximo encontro está lá fora.</strong>
+        <p>Conheça novas histórias e outros jeitos de fazer música.</p>
+        <a class="side-explore" href="/explorar">Explorar músicos ${icon('arrow')}</a>
+      </div>
       <div class="side-profile"><span class="avatar" aria-hidden="true">${escapeHtml(initials(profile.name))}</span>
         <div><b>${escapeHtml(profile.name)}</b><small>${escapeHtml(profile.instrument)}</small></div>
       </div>
@@ -78,6 +90,18 @@ export function renderShell() {
 export function updateShell(app, state, route) {
   const workspace = Boolean(state && route !== 'preview' && Object.hasOwn(workspacePages, route));
   app.classList.toggle('is-workspace', workspace);
+  const footer = app.querySelector('.public-footer');
+  const footerText = footer.querySelector('span');
+  const footerLink = footer.querySelector('a');
+  footerText.textContent = workspace
+    ? 'Feito para quem vive de música. Feito para você.'
+    : 'compasso · Um espaço para a sua música.';
+
+  footerLink.textContent = workspace
+    ? `compasso © ${new Date().getFullYear()} · Voltar ao início`
+    : 'Fale com a equipe';
+
+  footerLink.href = workspace ? '/' : '/contato';
   const side = app.querySelector('[data-private]');
   side.hidden = !workspace;
   side.innerHTML = workspace ? sidebar(state, route) : '';
