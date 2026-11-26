@@ -27,3 +27,5 @@ Somente apresentações marcadas como públicas entram na cópia publicada. A ag
 - **Unidade.** Os testes alteram o rascunho depois de gerar uma publicação e conferem que a cópia preserva os dados originais. [Testes de publicação](../tests/unit/publication.test.js)
 - **Integração.** As requisições passam pela API e usam SQLite em memória. A suíte verifica o conteúdo público após republicar ou retirar o portfólio e o conflito entre duas gravações da mesma revisão. [Publicação](../tests/integration/publication.test.js) · [Rascunho e concorrência](../tests/integration/draft.test.js)
 - **Navegador.** O Playwright abre o painel do músico e o portfólio em um segundo contexto, sem sessão. O teste confere o que o visitante vê antes e depois de o músico republicar. [Fluxos de ponta a ponta](../tests/e2e/flows.spec.js)
+
+[← Voltar ao README de Compasso](../README.md)

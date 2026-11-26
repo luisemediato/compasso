@@ -1,6 +1,10 @@
 # Compasso
 
-O `Compasso` é um projeto da disciplina de Teste de Software para músicos que querem reunir seus trabalhos e sua agenda em um portfólio público. Cada músico pode preparar um rascunho e escolher o que publicar. Os visitantes podem explorar os portfólios e consultar os eventos públicos.
+## Sobre o sistema
+
+O `Compasso` é um projeto da disciplina de Teste de Software para músicos que querem reunir seus trabalhos e sua agenda em um portfólio público. Na página inicial, **Descobrir músicos** abre a busca por nome, cidade ou instrumento. **Organizar meu espaço** leva o músico ao cadastro ou ao painel.
+
+No painel, o músico edita o perfil, adiciona trabalhos e escolhe quais apresentações divulgar. Salvar atualiza o rascunho. Publicar ou republicar atualiza a página que o visitante vê. O músico também pode retirar o portfólio do ar ou exportar seus dados em JSON.
 
 ## Integrantes
 
@@ -15,78 +19,39 @@ O `Compasso` é um projeto da disciplina de Teste de Software para músicos que 
 | Código-fonte | [Repositório no GitHub](https://github.com/luisemediato/compasso) |
 | Build no GitHub Actions | [Execução aprovada da versão 0.3.0 (#117)](https://github.com/luisemediato/compasso/actions/runs/45784638486) · [Histórico de execuções](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) |
 | Cobertura de testes | [Relatório do Compasso no Codecov](https://app.codecov.io/gh/luisemediato/compasso) |
-| Vídeo de apresentação | Aguardando publicação no YouTube. |
+| Vídeo no YouTube | Aguardando publicação. [Roteiro da apresentação](docs/roteiro-video.md) |
 
 ## Tecnologias
 
 A interface usa HTML, CSS e JavaScript. O esbuild prepara os arquivos da aplicação. Em desenvolvimento, o servidor roda com Node.js 24 e SQLite. A configuração de hospedagem usa Cloudflare Workers para servir a aplicação e Cloudflare D1 para armazenar os dados.
 
-[Arquitetura do Compasso e testes do fluxo de publicação](docs/arquitetura.md)
+[Arquitetura de Compasso](docs/arquitetura.md)
 
 ## Uso de IA
 
 ChatGPT e Codex foram usados como ferramentas de apoio ao planejamento, à elaboração de propostas de código e testes e à investigação de falhas. O desenvolvimento partiu de uma referência modular. As decisões sobre quais mudanças incorporar, sua revisão e a validação por testes ficaram sob responsabilidade humana.
 
-## Execução e testes
+## Execução local
 
-Para obter uma cópia do projeto, execute:
+Use Node.js da série 24, versão 24.15.0 ou superior. No terminal, clone o repositório e instale as dependências.
 
 ```bash
 git clone https://github.com/luisemediato/compasso.git
 cd compasso
 ```
 
-Com o Node.js 24 atualizado (24.15.0 ou superior na linha 24, exigido pelo jsdom do lockfile), execute `npm ci` na raiz do repositório para instalar as dependências.
+Para abrir a aplicação, execute `npm run dev` e acesse <http://localhost:4173>. O servidor cria o banco em `.local/compasso.sqlite` na primeira execução. Para encerrar, pressione `Ctrl+C`. Também é possível gerar os arquivos com `npm run build` e servi-los com `npm start`.
 
-### Executar a aplicação localmente
+## Execução dos testes
 
-Execute `npm run dev` e abra http://localhost:4173 no navegador. Para encerrar o servidor, pressione `Ctrl+C`. Para servir um build já gerado, use `npm start`.
-
-O comando `npm run build` gera os arquivos da aplicação em `dist/`. Na primeira execução, o servidor cria o banco SQLite em `.local/compasso.sqlite` e aplica a migração `drizzle/0000_compasso.sql`. Os dados ficam disponíveis nas próximas vezes que o servidor for iniciado.
-
-### Rodar os testes
-
-Execute os comandos na raiz do repositório. As suítes abaixo rodam no terminal e dispensam iniciar o servidor de desenvolvimento.
+Execute os comandos na raiz do repositório, após `npm ci`. Antes do primeiro teste de navegador, instale o Chromium com `npx playwright install chromium`. No Linux ou WSL com Ubuntu, use `npx playwright install --with-deps chromium`. O Playwright inicia seu próprio servidor na porta `4183` e usa um banco SQLite em memória.
 
 | Comando | O que executa |
 | --- | --- |
-| `npm test` | Testes unitários. |
-| `npm run test:integration` | Testes de integração. |
-| `npm run test:coverage` | As duas suítes com medição de cobertura. Gera `coverage/lcov.info`. |
-| `npm run test:e2e -- --workers=1` | Os 12 fluxos de navegador em sequência. |
-| `npm run test:e2e:parallel` | Os mesmos 12 fluxos com quatro workers. |
-| `npm run test:smoke -- https://URL-PUBLICA` | Verificação de leitura da aplicação publicada, sem criar contas ou mensagens. |
+| `npm test` | 88 testes unitários. |
+| `npm run test:integration` | 99 testes de integração. |
+| `npm run test:coverage` | Unidade e integração com cobertura. O c8 exige pelo menos 80% das linhas de cada arquivo JavaScript de `src/` e `server/` e gera `coverage/lcov.info`. |
+| `npm run test:e2e -- --workers=1` | 12 cenários de ponta a ponta em Chromium, em sequência. |
+| `npm run test:e2e:parallel` | Os mesmos cenários em paralelo, com quatro workers. |
 
-O GitHub Actions executa as verificações em Linux, Windows e macOS. A cobertura considera os arquivos JavaScript de `src/` e `server/`. No terminal, a coluna `% Lines` indica a porcentagem de linhas executadas pelos testes. Para consultar os resultados de uma versão, abra a [lista de execuções no GitHub Actions](https://github.com/luisemediato/compasso/actions/workflows/ci.yml) e o [relatório no Codecov](https://app.codecov.io/gh/luisemediato/compasso) referentes ao mesmo commit.
-
-Antes do primeiro E2E, execute `npx playwright install chromium` (no Linux, use `npx playwright install --with-deps chromium`). O Playwright faz o build, inicia o servidor na porta **4183** e cria um SQLite **em memória**, separado de `.local/compasso.sqlite`. Deixe essa porta livre. Cada teste usa uma identidade própria; os testes de publicação abrem um segundo contexto sem sessão. Os 12 cenários cobrem cadastro/login, perfil, criar/editar/excluir apresentação, trabalho na prévia, caminhos da home, edição privada após publicar, retirada, acesso direto com republicação, contato e exportação do portfólio.
-
-O relatório fica em `playwright-report/index.html`; use `npx playwright show-report` para abri-lo. Em falhas há screenshot e trace em `test-results/`. O Actions executa os E2E em paralelo, com dois workers em cada sistema, e guarda os artifacts `playwright-ubuntu-latest`, `playwright-windows-latest` e `playwright-macos-latest`, inclusive quando um teste falha. O job `deploy` depende da aprovação de toda a matriz `unit`.
-
-### Usar o sistema
-
-Na home, **Descobrir músicos** abre a busca e **Organizar meu espaço** leva ao cadastro ou ao painel de quem já entrou. A vitrine apresenta até três portfólios publicados. A demonstração fica em **Explorar músicos**. Após entrar, o painel oferece perfil, trabalhos, agenda, prévia e publicação. O e-mail de login e o nome completo não entram no portfólio. O contato público é opcional. O Instagram aceita usuário, `@usuario` ou link e pode ser apagado.
-
-Salvar altera o rascunho. **Publicar/Republicar** atualiza a cópia visível pelo endereço `/<slug>`; **Retirar publicação** remove essa cópia e conserva o rascunho. Eventos novos são privados por padrão; eventos antigos sem visibilidade também continuam privados. Só eventos marcados como públicos entram na publicação. A agenda do portfólio mostra os públicos de hoje em diante. Na página Publicação, o músico confere o endereço antes de confirmar e pode exportar seu rascunho e a versão publicada em JSON.
-
-Se outra aba salvar primeiro, a tela preserva os campos e oferece **Recarregar rascunho**, com confirmação de descarte. O painel também permite importar um rascunho legado deste navegador após confirmação; isso não altera a publicação existente. Nas páginas públicas, o link **Fale com a equipe** no rodapé abre o formulário de contato. O formulário confirma o envio depois que o servidor grava a mensagem. No painel do músico, o rodapé oferece o link **Voltar ao início**.
-
-### Hospedagem e verificação pública
-
-Endereço de produção: https://compasso.compasso-ufmg-2026.workers.dev
-
-O Cloudflare Worker serve interface e API no mesmo endereço; o D1 mantém os dados. A configuração está em `wrangler.json`. O workflow publica somente em push na `main`, depois de unidade, integração, cobertura e E2E aprovados nos três sistemas. Antes de publicar, aplica as migrações pendentes no D1 remoto. Os secrets `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_API_TOKEN` ficam no GitHub Actions; `CODECOV_TOKEN` permite enviar a cobertura. Os valores dessas credenciais não fazem parte do repositório.
-
-No primeiro deploy, a API cadastra `compasso-ufmg-2026.workers.dev` se a conta ainda não tiver subdomínio. Um endereço existente é preservado. Essa etapa usa a permissão `Workers Scripts Write` do token.
-
-O job de produção registra a URL no resumo do run e executa o smoke contra ela. O script exige status 200 e conteúdo esperado da home, CSS, JavaScript, API pública e rota direta. O arquivo público `/version.json` registra o SHA; no Actions, o smoke exige que ele corresponda ao commit aprovado. Localmente, o build identifica a revisão como `local`.
-
-Para repetir a verificação, execute `npm run test:smoke -- https://compasso.compasso-ufmg-2026.workers.dev`. Para conferir um portfólio existente, passe seu caminho: `npm run test:smoke -- https://compasso.compasso-ufmg-2026.workers.dev /slug-publicado`. A variável `COMPASSO_REVISION` permite exigir um SHA específico. O smoke não cria contas nem mensagens. `npm run deploy:check` só confere o pacote do Worker, sem publicar ou migrar o banco remoto.
-
-### Evidências e vídeo
-
-A suíte atual contém **88 unitários**, **99 integrações** e **12 cenários E2E**. A cobertura exige pelo menos **80% das linhas por arquivo** de `src/` e `server/`, incluindo módulos não executados. Os resultados e os artifacts dos três sistemas ficam no run do Actions; confira o SHA do run e o relatório correspondente no Codecov.
-
-O [roteiro do vídeo](docs/roteiro-video.md) organiza uma apresentação de até 5 minutos com sistema, tecnologias, uso de IA e testes. A dupla ainda precisa gravar, publicar o vídeo no YouTube e enviar os cinco links no Moodle. O histórico pode ser conferido com `git rev-list --count --no-merges origin/main` após `git fetch origin`.
-
-A Vercel não executa o binding `env.DB` do D1 como configuração nativa. O SQLite em arquivo usado em desenvolvimento também não persiste em Vercel Functions. Uma migração exigiria adaptar o entrypoint HTTP, conectar um banco remoto e revalidar transações, cookies e roteamento; publicar apenas `dist/public` não entrega cadastro nem persistência. Referências: [filesystem das Vercel Functions](https://vercel.com/docs/functions/runtimes#file-system-support) e [bindings D1 da Cloudflare](https://developers.cloudflare.com/d1/get-started/).
+O GitHub Actions executa as suítes em Linux, macOS e Windows. Consulte o guia para abrir os relatórios do Playwright ou conferir qual commit está em produção. [Testes no CI e deploy](docs/ci-cd.md)
