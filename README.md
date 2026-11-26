@@ -1,8 +1,11 @@
 # Compasso
 
-## Descrição
-
 O `Compasso` é um projeto da disciplina de Teste de Software para músicos que querem reunir seus trabalhos e sua agenda em um portfólio público. Cada músico pode preparar um rascunho e escolher o que publicar. Os visitantes podem explorar os portfólios e consultar os eventos públicos.
+
+## Integrantes
+
+- Luís Henrique Emediato
+- Davi Balsamão
 
 ## Links da entrega
 
@@ -14,14 +17,11 @@ O `Compasso` é um projeto da disciplina de Teste de Software para músicos que 
 | Cobertura de testes | [Relatório do Compasso no Codecov](https://app.codecov.io/gh/luisemediato/compasso) |
 | Vídeo de apresentação | Aguardando publicação no YouTube. |
 
-## Integrantes
-
-- Luís Henrique Emediato
-- Davi Balsamão
-
 ## Tecnologias
 
 A interface usa HTML, CSS e JavaScript. O esbuild prepara os arquivos da aplicação. Em desenvolvimento, o servidor roda com Node.js 24 e SQLite. A configuração de hospedagem usa Cloudflare Workers para servir a aplicação e Cloudflare D1 para armazenar os dados.
+
+[Arquitetura do Compasso e testes do fluxo de publicação](docs/arquitetura.md)
 
 ## Uso de IA
 
